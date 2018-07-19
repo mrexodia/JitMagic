@@ -1,0 +1,8 @@
+.vs/
+asInvoker
+bin/
+obj/
+requireAdministrator/
+Release/
+Debug/
+x64/
