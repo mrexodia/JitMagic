@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27906.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ManagedJitTest", "ManagedJitTest\ManagedJitTest.csproj", "{E56F4752-28C7-427D-8AB4-F2E5675AA695}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Any CPU|Any CPU = Any CPU|Any CPU
+		Prefer 32-bit|Any CPU = Prefer 32-bit|Any CPU
+		x64|Any CPU = x64|Any CPU
+		x86|Any CPU = x86|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E56F4752-28C7-427D-8AB4-F2E5675AA695}.Any CPU|Any CPU.ActiveCfg = Any CPU|Any CPU
+		{E56F4752-28C7-427D-8AB4-F2E5675AA695}.Any CPU|Any CPU.Build.0 = Any CPU|Any CPU
+		{E56F4752-28C7-427D-8AB4-F2E5675AA695}.Prefer 32-bit|Any CPU.ActiveCfg = Prefer 32-bit|Any CPU
+		{E56F4752-28C7-427D-8AB4-F2E5675AA695}.Prefer 32-bit|Any CPU.Build.0 = Prefer 32-bit|Any CPU
+		{E56F4752-28C7-427D-8AB4-F2E5675AA695}.x64|Any CPU.ActiveCfg = x64|Any CPU
+		{E56F4752-28C7-427D-8AB4-F2E5675AA695}.x64|Any CPU.Build.0 = x64|Any CPU
+		{E56F4752-28C7-427D-8AB4-F2E5675AA695}.x86|Any CPU.ActiveCfg = x86|Any CPU
+		{E56F4752-28C7-427D-8AB4-F2E5675AA695}.x86|Any CPU.Build.0 = x86|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {EA417BF5-2CA6-4A99-B859-1F4BC81874B1}
+	EndGlobalSection
+EndGlobal

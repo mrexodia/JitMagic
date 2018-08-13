@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27520.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "JitTest", "JitTest\JitTest.vcxproj", "{A63276BB-9346-475E-A332-74700C9F73EE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		asInvoker|x64 = asInvoker|x64
+		asInvoker|x86 = asInvoker|x86
+		requireAdministrator|x64 = requireAdministrator|x64
+		requireAdministrator|x86 = requireAdministrator|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A63276BB-9346-475E-A332-74700C9F73EE}.asInvoker|x64.ActiveCfg = asInvoker|x64
+		{A63276BB-9346-475E-A332-74700C9F73EE}.asInvoker|x64.Build.0 = asInvoker|x64
+		{A63276BB-9346-475E-A332-74700C9F73EE}.asInvoker|x86.ActiveCfg = asInvoker|Win32
+		{A63276BB-9346-475E-A332-74700C9F73EE}.asInvoker|x86.Build.0 = asInvoker|Win32
+		{A63276BB-9346-475E-A332-74700C9F73EE}.requireAdministrator|x64.ActiveCfg = requireAdministrator|x64
+		{A63276BB-9346-475E-A332-74700C9F73EE}.requireAdministrator|x64.Build.0 = requireAdministrator|x64
+		{A63276BB-9346-475E-A332-74700C9F73EE}.requireAdministrator|x86.ActiveCfg = requireAdministrator|Win32
+		{A63276BB-9346-475E-A332-74700C9F73EE}.requireAdministrator|x86.Build.0 = requireAdministrator|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1657A21C-0659-4DF1-B3C5-FFC510BEDA9C}
+	EndGlobalSection
+EndGlobal
