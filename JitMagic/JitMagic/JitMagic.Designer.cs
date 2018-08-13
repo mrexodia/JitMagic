@@ -45,7 +45,6 @@
             // 
             // listViewDebuggers
             // 
-            this.listViewDebuggers.Activation = System.Windows.Forms.ItemActivation.TwoClick;
             this.listViewDebuggers.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.listViewDebuggers.Location = new System.Drawing.Point(-1, 9);
             this.listViewDebuggers.Name = "listViewDebuggers";
