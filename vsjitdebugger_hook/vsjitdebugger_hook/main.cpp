@@ -59,6 +59,7 @@ extern "C" __declspec(dllexport) BOOL WINAPI DllMain(
 {
     if(fdwReason == DLL_PROCESS_ATTACH)
     {
+        LoadLibraryA("vsjitdebugger_hook.dll");
         OutputDebugStringA("[vsjitdebugger_hook] DllMain");
         if(MH_Initialize() != MH_OK)
             OutputDebugStringA("[vsjitdebugger_hook] MH_Initialize failed!");
