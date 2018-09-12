@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27520.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vsjitdebugger_hook", "vsjitdebugger_hook\vsjitdebugger_hook.vcxproj", "{D6B31B34-007A-4180-8730-F9A6643CEED6}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "werfault_hook", "werfault_hook\werfault_hook.vcxproj", "{D6B31B34-007A-4180-8730-F9A6643CEED6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
