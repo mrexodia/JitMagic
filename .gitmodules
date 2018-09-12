@@ -1,3 +1,0 @@
-[submodule "vsjitdebugger_hook/vsjitdebugger_hook/minhook"]
-	path = vsjitdebugger_hook/vsjitdebugger_hook/minhook
-	url = https://github.com/TsudaKageyu/minhook
