@@ -4,12 +4,23 @@ JitMagic is a simple tool that allows you to have multiple Just-In-Timer debugge
 
 ![screenshot](https://i.imgur.com/or4y3UK.png)
 
+## Installation
+
+You have to set the following registry keys:
+
+```
+HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows NT\CurrentVersion\AeDebug\Debugger
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug\Debugger
+```
+
+To use `JitMagic.exe`:
+
+```
+C:\Project\JitMagic\JitMagic\JitMagic\bin\Debug\JitMagic.exe" -p %ld -e %ld
+```
+
 ## vsjitdebugger
 
 To use this with Visual Studio's JIT debugger you need a special hook to make the Visual Studio version selection dialog work properly.
 
-Adding `vsjitdebugger_hook.dll` to the import table of `vsjitdebuggerps.dll` should do the trick. Paths:
-
-WOW64: `c:\Program Files (x86)\Common Files\Microsoft Shared\VS7Debug\vsjitdebuggerps.dll`
-
-Native: `c:\Program Files\Common Files\microsoft shared\VS7Debug\vsjitdebuggerps.dll`
+You can use [AppInitHook](https://github.com/mrexodia/AppInitHook) (module `WefaultMagic` injected to `werfault.exe` and `taskmsg.exe`) to get this to work.
