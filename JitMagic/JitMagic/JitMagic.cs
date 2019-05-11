@@ -12,6 +12,8 @@ using System.Runtime.InteropServices;
 using System.Management;
 using System.IO;
 using System.Reflection;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace JitMagic
 {
@@ -58,12 +60,12 @@ namespace JitMagic
             },
             new JitDebugger("x32dbg", Architecture.x86)
             {
-                FileName = @"c:\CodeBlocks\x64dbg\bin\x32\x32dbg.exe",
+                FileName = @"c:\x64dbg\bin\x32\x32dbg.exe",
                 Arguments = "-a {0} -e {1}"
             },
             new JitDebugger("x64dbg", Architecture.x64)
             {
-                FileName = @"c:\CodeBlocks\x64dbg\bin\x64\x64dbg.exe",
+                FileName = @"c:\x64dbg\bin\x64\x64dbg.exe",
                 Arguments = "-a {0} -e {1}"
             },
         };
@@ -103,6 +105,18 @@ namespace JitMagic
 
         public JitMagic(string[] Args)
         {
+            var jsonFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "JitMagic.json");
+            if (!File.Exists(jsonFile))
+                File.WriteAllText(jsonFile, JsonConvert.SerializeObject(_jitDebuggers, Formatting.Indented));
+            try
+            {
+                var json = File.ReadAllText(jsonFile);
+                _jitDebuggers = JsonConvert.DeserializeObject<JitDebugger[]>(json);
+            }
+            catch
+            {
+            }
+
             InitializeComponent();
             KeyPreview = true;
             Icon = Icon.ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location);
@@ -203,6 +217,7 @@ namespace JitMagic
             listViewDebuggers.Focus();
         }
 
+        [JsonConverter(typeof(StringEnumConverter))]
         enum Architecture
         {
             x64,
