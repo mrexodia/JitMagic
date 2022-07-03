@@ -46,6 +46,7 @@
             // listViewDebuggers
             // 
             this.listViewDebuggers.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.listViewDebuggers.HideSelection = false;
             this.listViewDebuggers.Location = new System.Drawing.Point(-1, 9);
             this.listViewDebuggers.Name = "listViewDebuggers";
             this.listViewDebuggers.Size = new System.Drawing.Size(354, 54);
@@ -74,6 +75,7 @@
             this.Name = "JitMagic";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "JitMagic";
+            this.TopMost = true;
             this.panel1.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();

@@ -14,6 +14,8 @@ using System.IO;
 using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Microsoft.Win32;
+using System.Security.Principal;
 
 namespace JitMagic
 {
@@ -35,25 +37,26 @@ namespace JitMagic
 
         int _pid;
         IntPtr _event;
+        IntPtr _jdinfo; // https://renenyffenegger.ch/notes/Windows/registry/tree/HKEY_LOCAL_MACHINE/Software/Microsoft/Windows-NT/CurrentVersion/AeDebug/index
 
         JitDebugger[] _jitDebuggers = new[]
         {
             new JitDebugger("Visual Studio", Architecture.x86)
             {
                 FileName = @"C:\Windows\SysWOW64\vsjitdebugger.exe",
-                Arguments = "-p {0} -e {1}"
+                Arguments = "-p {0} -e {1} -j 0x{2}"
             },
             new JitDebugger("Visual Studio", Architecture.x64)
             {
                 FileName = @"C:\Windows\System32\vsjitdebugger.exe",
-                Arguments = "-p {0} -e {1}"
+                Arguments = "-p {0} -e {1} -j 0x{2}"
             },
-            new JitDebugger("WinDbg (x86)", Architecture.x86)
+            new JitDebugger("WinDbg", Architecture.x86)
             {
                 FileName = @"C:\Program Files (x86)\Windows Kits\10\Debuggers\x86\windbg.exe",
                 Arguments = "-p {0} -e {1} -g"
             },
-            new JitDebugger("WinDbg (x64)", Architecture.x64)
+            new JitDebugger("WinDbg", Architecture.x64)
             {
                 FileName = @"C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\windbg.exe",
                 Arguments = "-p {0} -e {1} -g"
@@ -103,6 +106,90 @@ namespace JitMagic
             public bool inherit;
         }
 
+        public static void CheckRegistry(bool fix = false)
+        {
+            /*
+            vsjitdebugger.exe:
+                RegOpenKeyExW(HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows NT\CurrentVersion\AeDebug)
+                RegQueryValueExW(Debugger)
+                RegOpenKeyExW(HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug)
+                RegQueryValueExW(Debugger)
+                should be equal to: HKLM\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\Debugger\JIT\Native Debugger
+            */
+
+            var sbError = new StringBuilder();
+            var assembly = Assembly.GetExecutingAssembly().Location;
+            var expectedJit = $"\"{assembly}\" -p %ld -e %ld -j 0x%p";
+
+            using (var reg32 = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32))
+            {
+                using (var jit = reg32.OpenSubKey(@"SOFTWARE\Microsoft\VisualStudio\Debugger\JIT", fix))
+                {
+                    var nativeDebugger = jit.GetValue("Native Debugger") as string;
+                    if (nativeDebugger != expectedJit)
+                    {
+                        if (fix)
+                            jit.SetValue("Native Debugger", expectedJit);
+                        sbError.AppendLine($"- JIT\\Native Debugger is wrong ({nativeDebugger})");
+                    }
+                }
+
+                using (var aeDebug = reg32.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug", fix))
+                {
+                    var debugger = aeDebug.GetValue("Debugger", "") as string;
+                    if (debugger != expectedJit)
+                    {
+                        if (fix)
+                            aeDebug.SetValue("Debugger", expectedJit);
+                        sbError.AppendLine($"- AeDebug\\Debugger (32 bit) is wrong ({debugger})");
+                    }
+                    var auto = aeDebug.GetValue("Auto", "").ToString();
+                    if (auto != "1")
+                    {
+                        if (fix)
+                            aeDebug.SetValue("Auto", "1");
+                        sbError.AppendLine($"- AeDebug\\Auto (32 bit) is wrong ({auto.Replace("\0", "\\0")})");
+                    }
+                }
+            }
+
+            using (var reg64 = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64))
+            {
+                using (var aeDebug = reg64.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug", fix))
+                {
+                    var debugger = aeDebug.GetValue("Debugger", "") as string;
+                    if (debugger != expectedJit)
+                    {
+                        if (fix)
+                            aeDebug.SetValue("Debugger", expectedJit);
+                        sbError.AppendLine($"- AeDebug\\Debugger (64 bit) is wrong ({debugger})");
+                    }
+                    var auto = aeDebug.GetValue("Auto", "").ToString();
+                    if (auto != "1")
+                    {
+                        if (fix)
+                            aeDebug.SetValue("Auto", "1");
+                        sbError.AppendLine($"- AeDebug\\Auto (64 bit) is wrong ({auto})");
+                    }
+                }
+            }
+
+            if (!fix && sbError.Length > 0)
+            {
+                if (MessageBox.Show($"JitMagic is not (properly) installed:\n{sbError}\n\nDo you want to install now?", "Error", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                {
+                    var elevated = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = assembly,
+                        UseShellExecute = true,
+                        Verb = elevated ? "open" : "runas",
+                        Arguments = "-fixregistry",
+                    }).WaitForExit();
+                }
+            }
+        }
+
         public JitMagic(string[] Args)
         {
             var jsonFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "JitMagic.json");
@@ -117,14 +204,17 @@ namespace JitMagic
             {
             }
 
+            CheckRegistry();
+
             InitializeComponent();
             KeyPreview = true;
             Icon = Icon.ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location);
 
-            if (Args.Length == 4 && Args[0] == "-p" && Args[2] == "-e")
+            if (Args.Length == 6 && Args[0] == "-p" && Args[2] == "-e" && Args[4] == "-j")
             {
                 _pid = int.Parse(Args[1]);
                 _event = new IntPtr(int.Parse(Args[3]));
+                _jdinfo = new IntPtr(long.Parse(Args[5].TrimStart('0', 'x', 'X'), System.Globalization.NumberStyles.HexNumber));
                 Text = $"JitMagic - PID: {_pid}";
                 try
                 {
@@ -140,7 +230,7 @@ namespace JitMagic
                             inherit = true
                         };
                         var hEvent = CreateEvent(ref sec, true, false, null);
-                        var args = string.Format(jitDebugger.Arguments, _pid, hEvent.ToInt32());
+                        var args = string.Format(jitDebugger.Arguments, _pid, hEvent.ToInt32(), _jdinfo.ToString("X"));
                         var psi = new ProcessStartInfo
                         {
                             UseShellExecute = false,
@@ -164,9 +254,9 @@ namespace JitMagic
                     labelProcessInformation.Text = $"{Path.GetFileName(GetProcessPath(_pid))} ({architecture})";
                     PopulateJitDebuggers(architecture);
                 }
-                catch
+                catch (Exception x)
                 {
-                    labelProcessInformation.Text = "Error retrieving information!";
+                    MessageBox.Show("Error retrieving information! " + x);
                 }
             }
             else
@@ -177,7 +267,7 @@ namespace JitMagic
 
         protected override void OnClosing(CancelEventArgs e)
         {
-            if(_event != IntPtr.Zero)
+            if (_event != IntPtr.Zero)
             {
                 SetEvent(_event);
                 CloseHandle(_event);
@@ -198,7 +288,7 @@ namespace JitMagic
             for (var i = 0; i < _jitDebuggers.Length; i++)
             {
                 var jitDebugger = _jitDebuggers[i];
-                
+
                 var icon = Icon.ExtractAssociatedIcon(jitDebugger.FileName);
                 listViewDebuggers.LargeImageList.Images.Add(icon.ToBitmap());
 
@@ -230,7 +320,7 @@ namespace JitMagic
             if (Environment.Is64BitOperatingSystem)
             {
                 bool iswow64 = false;
-                if(IsWow64Process(p.Handle, out iswow64))
+                if (IsWow64Process(p.Handle, out iswow64))
                 {
                     return iswow64 ? Architecture.x86 : Architecture.x64;
                 }
