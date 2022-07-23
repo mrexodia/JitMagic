@@ -221,7 +221,7 @@ namespace JitMagic
                     listViewDebuggers.ItemActivate += (s, e) =>
                     {
                         Hide();
-                        var jitDebugger = _jitDebuggers[listViewDebuggers.SelectedItems[0].ImageIndex];
+                        var jitDebugger = listViewDebuggers.SelectedItems[0].Tag as JitDebugger;
 
                         var sec = new SECURITY_ATTRIBUTES
                         {
@@ -289,17 +289,18 @@ namespace JitMagic
             {
                 var jitDebugger = _jitDebuggers[i];
 
-                var icon = Icon.ExtractAssociatedIcon(jitDebugger.FileName);
-                listViewDebuggers.LargeImageList.Images.Add(icon.ToBitmap());
-
                 if (!File.Exists(jitDebugger.FileName))
                     continue;
+
+                var icon = Icon.ExtractAssociatedIcon(jitDebugger.FileName);
+                listViewDebuggers.LargeImageList.Images.Add(icon.ToBitmap());
 
                 if (architecture == Architecture.All || jitDebugger.Architecture == architecture || jitDebugger.Architecture == Architecture.All)
                 {
                     listViewDebuggers.Items.Add(new ListViewItem(jitDebugger.Name)
                     {
-                        ImageIndex = i
+                        ImageIndex = i,
+                        Tag = jitDebugger
                     });
                 }
             }
