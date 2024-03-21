@@ -29,6 +29,7 @@ namespace JitMagic {
 			public Architecture Architecture { get; }
 			public string FileName { get; set; }
 			public string Arguments { get; set; }
+			public int AdditionalDelaySecs { get; set; } = 0; // Additional time after it would normally exit where it exits.  Good for  misbehaving / non-signalling debuggers.
 		}
 
 		int _pid;
@@ -211,7 +212,7 @@ namespace JitMagic {
 			if (config.OverrideHeight > 100)
 				Height = config.OverrideHeight;
 
-			var haveInvokeDetails = false;
+			HaveInvokeDetails = false;
 			if (Args.Length >= 4 && Args[0] == "-p" && Args[2] == "-e") {
 				if (Args.Length >= 6 && Args[4] == "-j")
 					JitDebugStructPtrAddy = Args[5];
@@ -228,39 +229,48 @@ namespace JitMagic {
 				} catch (Exception ex) {
 					MessageBox.Show("Error retrieving information! " + ex);
 				}
-				haveInvokeDetails = true;
+				HaveInvokeDetails = true;
 			} else {
 				PopulateJitDebuggers(Architecture.All);
 			}
-			listViewDebuggers.ItemActivate += (s, e) => {
-				if (haveInvokeDetails)
-					Hide();
-				var jitDebugger = listViewDebuggers.SelectedItems[0].Tag as JitDebugger;
+			listViewDebuggers.ItemActivate += OnItemClicked;
+		}
+		private bool HaveInvokeDetails;
 
-				var sec = new SECURITY_ATTRIBUTES {
-					length = Marshal.SizeOf<SECURITY_ATTRIBUTES>(),
-					securityDesc = IntPtr.Zero,
-					inherit = true
-				};
-				var hEvent = haveInvokeDetails ? CreateEvent(ref sec, true, false, null) : IntPtr.Zero;
-				var args = string.Format(jitDebugger.Arguments, _pid, hEvent.ToInt32(), JitDebugStructPtrAddy);
-				var psi = new ProcessStartInfo {
-					UseShellExecute = false,
-					FileName = jitDebugger.FileName,
-					Arguments = args,
-				};
-				// Undocumented feature of vsjitdebugger.exe that will halt it until a debugger is attached.
-				//psi.EnvironmentVariables.Add("VS_Debugging_PauseOnStartup", "1");
-				var p = Process.Start(psi);
-				if (haveInvokeDetails) {
-					var handles = new HANDLES {
-						h1 = hEvent,
-						h2 = p.Handle
-					};
-					WaitForMultipleObjects(2, ref handles, false, -1);
-					Close();
-				}
+		private void OnItemClicked(object sender, EventArgs e) {
+
+			if (HaveInvokeDetails)
+				Hide();
+			var jitDebugger = listViewDebuggers.SelectedItems[0].Tag as JitDebugger;
+
+			var sec = new SECURITY_ATTRIBUTES {
+				length = Marshal.SizeOf<SECURITY_ATTRIBUTES>(),
+				securityDesc = IntPtr.Zero,
+				inherit = true
 			};
+			var hEvent = HaveInvokeDetails ? CreateEvent(ref sec, true, false, null) : IntPtr.Zero;
+			var args = string.Format(jitDebugger.Arguments, _pid, hEvent.ToInt32(), JitDebugStructPtrAddy);
+			var psi = new ProcessStartInfo {
+				UseShellExecute = false,
+				FileName = jitDebugger.FileName,
+				Arguments = args,
+			};
+			// Undocumented feature of vsjitdebugger.exe that will halt it until a debugger is attached.
+			//psi.EnvironmentVariables.Add("VS_Debugging_PauseOnStartup", "1");
+			var p = Process.Start(psi);
+			if (HaveInvokeDetails) {
+				var handles = new HANDLES {
+					h1 = hEvent,
+					h2 = p.Handle
+				};
+				WaitForMultipleObjects(2, ref handles, false, -1);
+				DelayClose(jitDebugger.AdditionalDelaySecs);
+			}
+		}
+		private async void DelayClose(int extraDelaySecs) {
+			if (extraDelaySecs > 0)
+				await Task.Delay(TimeSpan.FromSeconds(extraDelaySecs));
+			Close();
 		}
 
 		protected override void OnClosing(CancelEventArgs e) {
