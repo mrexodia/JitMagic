@@ -133,7 +133,6 @@ namespace JitMagic
 			// btnAttach
 			// 
 			this.btnAttach.Anchor = System.Windows.Forms.AnchorStyles.Bottom;
-			this.btnAttach.Font = new System.Drawing.Font("Microsoft Sans Serif", 15.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(254)));
 			this.btnAttach.Location = new System.Drawing.Point(609, 193);
 			this.btnAttach.Name = "btnAttach";
 			this.btnAttach.Size = new System.Drawing.Size(124, 33);
