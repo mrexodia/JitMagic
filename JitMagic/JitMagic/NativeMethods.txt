@@ -12,3 +12,8 @@ FSCTL_GET_REPARSE_POINT
 REPARSE_DATA_BUFFER
 IO_REPARSE_TAG_SYMLINK
 IsWow64Process
+CreateEvent
+SetEvent
+WaitForSingleObject
+WaitForMultipleObjects
+CloseHandle

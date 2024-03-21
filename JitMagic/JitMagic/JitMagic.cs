@@ -16,6 +16,8 @@ using Newtonsoft.Json.Converters;
 using Microsoft.Win32;
 using System.Security.Principal;
 using Windows.Win32;
+using Windows.Win32.Foundation;
+using Microsoft.Win32.SafeHandles;
 namespace JitMagic {
 	public partial class JitMagic : Form {
 		class JitDebugger {
@@ -89,38 +91,6 @@ namespace JitMagic {
 		}
 
 
-
-
-		[DllImport("kernel32.dll")]
-		static extern bool IsWow64Process([In] IntPtr hProcess, [Out] out bool lpSystemInfo);
-
-		[DllImport("kernel32.dll")]
-		static extern IntPtr CreateEvent(ref SECURITY_ATTRIBUTES lpEventAttributes, bool bManualReset, bool bInitialState, string lpName);
-
-		[DllImport("kernel32.dll")]
-		static extern bool SetEvent(IntPtr hEvent);
-
-		[DllImport("kernel32.dll")]
-		static extern Int32 WaitForSingleObject(IntPtr hHandle, Int32 dwMilliseconds);
-
-		[DllImport("kernel32.dll")]
-		static extern Int32 WaitForMultipleObjects(Int32 Count, ref HANDLES lpHandles, bool bWaitAll, Int32 dwMilliseconds);
-
-		[DllImport("kernel32.dll")]
-		static extern bool CloseHandle(IntPtr hObject);
-
-		[StructLayout(LayoutKind.Sequential)]
-		struct HANDLES {
-			public IntPtr h1;
-			public IntPtr h2;
-		}
-
-		[StructLayout(LayoutKind.Sequential)]
-		struct SECURITY_ATTRIBUTES {
-			public Int32 length;
-			public IntPtr securityDesc;
-			public bool inherit;
-		}
 
 		private enum UpdateRegMode { None, Check, Register, Unregister }
 
@@ -248,13 +218,12 @@ namespace JitMagic {
 				Hide();
 			var jitDebugger = listViewDebuggers.SelectedItems[0].Tag as JitDebugger;
 
-			var sec = new SECURITY_ATTRIBUTES {
-				length = Marshal.SizeOf<SECURITY_ATTRIBUTES>(),
-				securityDesc = IntPtr.Zero,
-				inherit = true
-			};
-			var hEvent = HaveInvokeDetails ? CreateEvent(ref sec, true, false, null) : IntPtr.Zero;
-			var args = string.Format(jitDebugger.Arguments, _pid, hEvent.ToInt32(), JitDebugStructPtrAddy);
+			var sec = new Windows.Win32.Security.SECURITY_ATTRIBUTES{ bInheritHandle=true};
+			sec.nLength =(uint) Marshal.SizeOf(sec);
+
+			debugSignalEventForChild = HaveInvokeDetails ? PInvoke.CreateEvent(sec,true,false,null) : default;
+			
+			var args = string.Format(jitDebugger.Arguments, _pid, debugSignalEventForChild.DangerousGetHandle().ToInt32(), JitDebugStructPtrAddy);
 			var psi = new ProcessStartInfo {
 				UseShellExecute = false,
 				FileName = jitDebugger.FileName,
@@ -264,14 +233,11 @@ namespace JitMagic {
 			//psi.EnvironmentVariables.Add("VS_Debugging_PauseOnStartup", "1");
 			var p = Process.Start(psi);
 			if (HaveInvokeDetails) {
-				var handles = new HANDLES {
-					h1 = hEvent,
-					h2 = p.Handle
-				};
-				WaitForMultipleObjects(2, ref handles, false, -1);
+				PInvoke.WaitForMultipleObjects(new HANDLE[]{new HANDLE(debugSignalEventForChild.DangerousGetHandle()),new HANDLE(p.Handle) },false,uint.MaxValue);
 				DelayClose(jitDebugger.AdditionalDelaySecs);
 			}
 		}
+		private SafeFileHandle debugSignalEventForChild;
 		private async void DelayClose(int extraDelaySecs) {
 			if (extraDelaySecs > 0)
 				await Task.Delay(TimeSpan.FromSeconds(extraDelaySecs));
@@ -315,8 +281,8 @@ namespace JitMagic {
 
 		protected override void OnClosing(CancelEventArgs e) {
 			if (_event != IntPtr.Zero) {
-				SetEvent(_event);
-				CloseHandle(_event);
+				PInvoke.SetEvent(new HANDLE(_event));
+				PInvoke.CloseHandle(new HANDLE(_event));
 			}
 			base.OnClosing(e);
 		}
@@ -360,8 +326,7 @@ namespace JitMagic {
 
 		static Architecture GetProcessArchitecture(Process p) {
 			if (Environment.Is64BitOperatingSystem) {
-				bool iswow64 = false;
-				if (IsWow64Process(p.Handle, out iswow64)) {
+				if (PInvoke.IsWow64Process(new SafeProcessHandle(p.Handle,false), out var iswow64)) {
 					return iswow64 ? Architecture.x86 : Architecture.x64;
 				}
 				throw new Exception("IsWow64Process failed");
