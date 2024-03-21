@@ -259,13 +259,15 @@ namespace JitMagic {
 			buffer.Clear();
 
 			fixed (sbyte* ptr = buffer) {
-				var itmSpan = new Span<Windows.Wdk.Storage.FileSystem.REPARSE_DATA_BUFFER>(ptr, 1);
+				ref var itm = ref *(Windows.Wdk.Storage.FileSystem.REPARSE_DATA_BUFFER*)ptr;
+
+				
 				uint bytes;
 				if (!PInvoke.DeviceIoControl(handle, PInvoke.FSCTL_GET_REPARSE_POINT, null, 0, ptr, (uint)buffer.Length, &bytes, null))
 					throw new Win32Exception();
-				if (itmSpan[0].ReparseTag != PInvoke.IO_REPARSE_TAG_SYMLINK)
+				if (itm.ReparseTag != PInvoke.IO_REPARSE_TAG_SYMLINK)
 					throw new Exception("File was not a symlink");
-				ref var symReparse = ref itmSpan[0].Anonymous.SymbolicLinkReparseBuffer;
+				ref var symReparse = ref itm.Anonymous.SymbolicLinkReparseBuffer;
 				var path = symReparse.PathBuffer.AsSpan((int)bytes / sizeof(char)).Slice(symReparse.SubstituteNameOffset / sizeof(char)); //it cant be any longer than the total bytes returned
 				var str = CStrToString(path);
 				if (str.Length < 4 || !str.StartsWith(@"\??\"))
