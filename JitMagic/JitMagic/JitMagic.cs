@@ -1,10 +1,9 @@
 using System;
-using System.Collections.Generic;
+using Windows.Win32.Storage.FileSystem;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Diagnostics;
@@ -16,7 +15,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Microsoft.Win32;
 using System.Security.Principal;
-
+using Windows.Win32;
 namespace JitMagic {
 	public partial class JitMagic : Form {
 		class JitDebugger {
@@ -169,7 +168,13 @@ namespace JitMagic {
 				SaveConfig();
 			string json = null;
 			try {
-				json = File.ReadAllText(ConfigFile);
+
+				try {
+					json = File.ReadAllText(ConfigFile);
+				} catch (IOException) { //This is to try and work around an issue where for actual exceptions (vs debugger.breaks) RedirectionGuard is enabled and it prevents us from reading the config if it is a symlink.  This is the only way to read it that I have found.
+					json = File.ReadAllText(TryReadFileTargetIfSymlink(ConfigFile));
+				}
+
 				config = JsonConvert.DeserializeObject<Config>(json);
 			} catch {
 				try {
@@ -271,6 +276,41 @@ namespace JitMagic {
 			if (extraDelaySecs > 0)
 				await Task.Delay(TimeSpan.FromSeconds(extraDelaySecs));
 			Close();
+		}
+		public static string CStrToString(Span<char> str) {
+			var pos = str.IndexOf((char)0);
+			if (pos == -1)
+				throw new Exception("invalid string");
+			return str.Slice(0, pos).ToString();
+		}
+		private unsafe string TryReadFileTargetIfSymlink(string ConfigFile) {
+
+			using var handle = PInvoke.CreateFile(ConfigFile, default, default, null, FILE_CREATION_DISPOSITION.OPEN_EXISTING, FILE_FLAGS_AND_ATTRIBUTES.FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAGS_AND_ATTRIBUTES.FILE_FLAG_OPEN_REPARSE_POINT, default);
+			if (handle.IsInvalid)
+				throw new Win32Exception();
+
+			Span<sbyte> buffer = new sbyte[PInvoke.MAXIMUM_REPARSE_DATA_BUFFER_SIZE + Marshal.SizeOf<Windows.Wdk.Storage.FileSystem.REPARSE_DATA_BUFFER>()];
+			buffer.Clear();
+
+			fixed (sbyte* ptr = buffer) {
+				var itmSpan = new Span<Windows.Wdk.Storage.FileSystem.REPARSE_DATA_BUFFER>(ptr, 1);
+				uint bytes;
+				if (!PInvoke.DeviceIoControl(handle, PInvoke.FSCTL_GET_REPARSE_POINT, null, 0, ptr, (uint)buffer.Length, &bytes, null))
+					throw new Win32Exception();
+				if (itmSpan[0].ReparseTag != PInvoke.IO_REPARSE_TAG_SYMLINK)
+					throw new Exception("File was not a symlink");
+				ref var symReparse = ref itmSpan[0].Anonymous.SymbolicLinkReparseBuffer;
+				var path = symReparse.PathBuffer.AsSpan((int)bytes / sizeof(char)).Slice(symReparse.SubstituteNameOffset / sizeof(char)); //it cant be any longer than the total bytes returned
+				var str = CStrToString(path);
+				if (str.Length < 4 || !str.StartsWith(@"\??\"))
+					throw new Exception("Invalid symlink read");
+				var fileName = str.Substring(4);
+				if (!File.Exists(fileName))
+					throw new FileNotFoundException($"Symlink target does not exist: {fileName}");
+				return fileName;
+			}
+
+
 		}
 
 		protected override void OnClosing(CancelEventArgs e) {
