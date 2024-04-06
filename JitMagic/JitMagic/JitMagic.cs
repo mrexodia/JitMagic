@@ -18,6 +18,7 @@ using System.Security.Principal;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Microsoft.Win32.SafeHandles;
+using Windows.Wdk.Storage.FileSystem;
 namespace JitMagic {
 	public partial class JitMagic : Form {
 		class JitDebugger {
@@ -96,7 +97,7 @@ namespace JitMagic {
 
 		private Config config = new();
 		private void SaveConfig() {
-			File.WriteAllText(ConfigFile, JsonConvert.SerializeObject(config, Formatting.Indented));
+			ReadWriteConfigFile(ConfigFile,JsonConvert.SerializeObject(config, Formatting.Indented));
 		}
 		public string ConfigFile => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "JitMagic.json");
 		public static bool IsUserAdministrator() {
@@ -136,25 +137,16 @@ namespace JitMagic {
 
 			if (!File.Exists(ConfigFile))
 				SaveConfig();
-			string json = null;
+			string json=null;
 			try {
-
-				try {
-					json = File.ReadAllText(ConfigFile);
-				} catch (IOException) { //This is to try and work around an issue where for actual exceptions (vs debugger.breaks) RedirectionGuard is enabled and it prevents us from reading the config if it is a symlink.  This is the only way to read it that I have found.
-					json = File.ReadAllText(TryReadFileTargetIfSymlink(ConfigFile));
-				}
-
+				json = ReadWriteConfigFile(ConfigFile);
 				config = JsonConvert.DeserializeObject<Config>(json);
-			} catch {
-				try {
-					if (!String.IsNullOrWhiteSpace(json))
-						config.JitDebuggers = JsonConvert.DeserializeObject<JitDebugger[]>(json);
-					SaveConfig();//save in new format
-				} catch {
-
-				}
-			}
+			} catch {}
+			try {
+				if (!String.IsNullOrWhiteSpace(json))
+					config.JitDebuggers = JsonConvert.DeserializeObject<JitDebugger[]>(json);
+				SaveConfig();//save in new format
+			} catch {}
 			if (config.IgnoringUntil > DateTime.Now)
 				Environment.Exit(0);
 
@@ -218,11 +210,11 @@ namespace JitMagic {
 				Hide();
 			var jitDebugger = listViewDebuggers.SelectedItems[0].Tag as JitDebugger;
 
-			var sec = new Windows.Win32.Security.SECURITY_ATTRIBUTES{ bInheritHandle=true};
-			sec.nLength =(uint) Marshal.SizeOf(sec);
+			var sec = new Windows.Win32.Security.SECURITY_ATTRIBUTES { bInheritHandle = true };
+			sec.nLength = (uint)Marshal.SizeOf(sec);
 
-			debugSignalEventForChild = HaveInvokeDetails ? PInvoke.CreateEvent(sec,true,false,null) : default;
-			
+			debugSignalEventForChild = HaveInvokeDetails ? PInvoke.CreateEvent(sec, true, false, null) : default;
+
 			var args = string.Format(jitDebugger.Arguments, _pid, debugSignalEventForChild.DangerousGetHandle().ToInt32(), JitDebugStructPtrAddy);
 			var psi = new ProcessStartInfo {
 				UseShellExecute = false,
@@ -233,7 +225,7 @@ namespace JitMagic {
 			//psi.EnvironmentVariables.Add("VS_Debugging_PauseOnStartup", "1");
 			var p = Process.Start(psi);
 			if (HaveInvokeDetails) {
-				PInvoke.WaitForMultipleObjects(new HANDLE[]{new HANDLE(debugSignalEventForChild.DangerousGetHandle()),new HANDLE(p.Handle) },false,uint.MaxValue);
+				PInvoke.WaitForMultipleObjects(new HANDLE[] { new HANDLE(debugSignalEventForChild.DangerousGetHandle()), new HANDLE(p.Handle) }, false, uint.MaxValue);
 				DelayClose(jitDebugger.AdditionalDelaySecs);
 			}
 		}
@@ -249,36 +241,57 @@ namespace JitMagic {
 				throw new Exception("invalid string");
 			return str.Slice(0, pos).ToString();
 		}
-		private unsafe string TryReadFileTargetIfSymlink(string ConfigFile) {
 
-			using var handle = PInvoke.CreateFile(ConfigFile, default, default, null, FILE_CREATION_DISPOSITION.OPEN_EXISTING, FILE_FLAGS_AND_ATTRIBUTES.FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAGS_AND_ATTRIBUTES.FILE_FLAG_OPEN_REPARSE_POINT, default);
-			if (handle.IsInvalid)
-				throw new Win32Exception();
+		/// <summary>
+		/// Tries to read or write the file directly, if it fails due to control flow guard try to work around that.  if toWrite is null it reads the file and returns the data otherwise it writes toWrite to the file.
+		/// </summary>
+		/// <param name="ConfigFile"></param>
+		/// <param name="toWrite"></param>
+		/// <returns></returns>
+		/// <exception cref="Win32Exception"></exception>
+		/// <exception cref="Exception"></exception>
+		/// <exception cref="FileNotFoundException"></exception>
+		private unsafe string ReadWriteConfigFile(string ConfigFile, string toWrite = null) {
+			Func<string, string> action = (string fileName) => {
+				if (toWrite == null)
+					return File.ReadAllText(fileName);
+				File.WriteAllText(fileName, toWrite);
+				return null;
+			};
 
-			Span<sbyte> buffer = new sbyte[PInvoke.MAXIMUM_REPARSE_DATA_BUFFER_SIZE + Marshal.SizeOf<Windows.Wdk.Storage.FileSystem.REPARSE_DATA_BUFFER>()];
-			buffer.Clear();
-
-			fixed (sbyte* ptr = buffer) {
-				ref var itm = ref *(Windows.Wdk.Storage.FileSystem.REPARSE_DATA_BUFFER*)ptr;
-
-				
-				uint bytes;
-				if (!PInvoke.DeviceIoControl(handle, PInvoke.FSCTL_GET_REPARSE_POINT, null, 0, ptr, (uint)buffer.Length, &bytes, null))
+			try {
+				return action(ConfigFile);
+			} catch (IOException) { //This is to try and work around an issue where for actual exceptions (vs debugger.breaks) RedirectionGuard is enabled and it prevents us from reading the config if it is a symlink.  This is the only way to read it that I have found.
+				using var handle = PInvoke.CreateFile(ConfigFile, default, default, null, FILE_CREATION_DISPOSITION.OPEN_EXISTING, FILE_FLAGS_AND_ATTRIBUTES.FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAGS_AND_ATTRIBUTES.FILE_FLAG_OPEN_REPARSE_POINT, default);
+				if (handle.IsInvalid)
 					throw new Win32Exception();
-				if (itm.ReparseTag != PInvoke.IO_REPARSE_TAG_SYMLINK)
-					throw new Exception("File was not a symlink");
-				ref var symReparse = ref itm.Anonymous.SymbolicLinkReparseBuffer;
-				var path = symReparse.PathBuffer.AsSpan((int)bytes / sizeof(char)).Slice(symReparse.SubstituteNameOffset / sizeof(char)); //it cant be any longer than the total bytes returned
-				var str = CStrToString(path);
-				if (str.Length < 4 || !str.StartsWith(@"\??\"))
-					throw new Exception("Invalid symlink read");
-				var fileName = str.Substring(4);
-				if (!File.Exists(fileName))
-					throw new FileNotFoundException($"Symlink target does not exist: {fileName}");
-				return fileName;
+
+				Span<sbyte> buffer = new sbyte[PInvoke.MAXIMUM_REPARSE_DATA_BUFFER_SIZE + Marshal.SizeOf<Windows.Wdk.Storage.FileSystem.REPARSE_DATA_BUFFER>()];
+				buffer.Clear();
+
+				fixed (sbyte* ptr = buffer) {
+					ref var itm = ref *(Windows.Wdk.Storage.FileSystem.REPARSE_DATA_BUFFER*)ptr;
+
+
+					uint bytes;
+					if (!PInvoke.DeviceIoControl(handle, PInvoke.FSCTL_GET_REPARSE_POINT, null, 0, ptr, (uint)buffer.Length, &bytes, null))
+						throw new Win32Exception();
+
+					if (itm.ReparseTag != PInvoke.IO_REPARSE_TAG_SYMLINK)
+						throw new Exception("File was not a symlink");
+					ref var symReparse = ref itm.Anonymous.SymbolicLinkReparseBuffer;
+					var path = symReparse.PathBuffer.AsSpan((int)bytes / sizeof(char)).Slice(symReparse.SubstituteNameOffset / sizeof(char)); //it cant be any longer than the total bytes returned
+					var str = CStrToString(path);
+					if (str.Length < 4 || !str.StartsWith(@"\??\"))
+						throw new Exception("Invalid symlink read");
+					var fileName = str.Substring(4);
+					if (!File.Exists(fileName))
+						throw new FileNotFoundException($"Symlink target does not exist: {fileName}");
+
+					return action(fileName);
+				}
+
 			}
-
-
 		}
 
 		protected override void OnClosing(CancelEventArgs e) {
@@ -328,7 +341,7 @@ namespace JitMagic {
 
 		static Architecture GetProcessArchitecture(Process p) {
 			if (Environment.Is64BitOperatingSystem) {
-				if (PInvoke.IsWow64Process(new SafeProcessHandle(p.Handle,false), out var iswow64)) {
+				if (PInvoke.IsWow64Process(new SafeProcessHandle(p.Handle, false), out var iswow64)) {
 					return iswow64 ? Architecture.x86 : Architecture.x64;
 				}
 				throw new Exception("IsWow64Process failed");
