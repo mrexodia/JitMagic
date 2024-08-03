@@ -392,13 +392,15 @@ namespace JitMagic {
 		/// <param name="onlyCheck"></param>
 		/// <returns></returns>
 		private bool UpdateRegistration(UpdateRegMode mode) {
-			var spots = new string[] { @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug", @"SOFTWARE\WOW6432Node\Microsoft\Windows NT\CurrentVersion\AeDebug" };
+			var spots = new string[] { @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug", @"SOFTWARE\WOW6432Node\Microsoft\Windows NT\CurrentVersion\AeDebug", @"SOFTWARE\WOW6432Node\Microsoft\VisualStudio\Debugger\JIT" };
 			var us = $@"""{Assembly.GetExecutingAssembly().Location}"" -p %ld -e %ld -j %p";
-			var debugVal = "Debugger";
-			var bkVal = "DebuggerBackup";
 			foreach (var spot in spots) {
+				var isVSEntry = spot.EndsWith("JIT");
+				var debugVal = isVSEntry ? "Native Debugger" : "Debugger";
+				var bkVal = "DebuggerBackup";
 
 				using var sub = Registry.LocalMachine.OpenSubKey(spot, mode != UpdateRegMode.Check);
+
 				var curBk = sub.GetValue(bkVal) as string;
 				var cur = sub.GetValue(debugVal) as string;
 				var isUsNow = mode != UpdateRegMode.Unregister ? cur.Equals(us, StringComparison.CurrentCultureIgnoreCase) : cur.StartsWith("\"" + Assembly.GetExecutingAssembly().Location, StringComparison.CurrentCultureIgnoreCase); //for unregistering we dont need exact match just to make sure its us
@@ -414,11 +416,13 @@ namespace JitMagic {
 						sub.SetValue(bkVal, cur);
 
 					sub.SetValue(debugVal, us);
-					sub.SetValue("Auto", 1);
+					if (!isVSEntry)
+						sub.SetValue("Auto", 1);
 				} else { //unregister
 					if (string.IsNullOrWhiteSpace(curBk)) {
 						sub.DeleteValue(debugVal);
-						sub.SetValue("Auto", 0);
+						if (!isVSEntry)
+							sub.SetValue("Auto", 0);
 					} else {
 						sub.SetValue(debugVal, curBk);
 						sub.DeleteValue(bkVal);
