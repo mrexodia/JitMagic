@@ -17,3 +17,5 @@ SetEvent
 WaitForSingleObject
 WaitForMultipleObjects
 CloseHandle
+SYMLINK_FLAG_RELATIVE
+IO_REPARSE_TAG_MOUNT_POINT
