@@ -37,6 +37,7 @@ namespace JitMagic
 			this.label2 = new System.Windows.Forms.Label();
 			this.btnAttach = new System.Windows.Forms.Button();
 			this.btnRemoveUs = new System.Windows.Forms.Button();
+			this.btnBlacklistPath = new System.Windows.Forms.Button();
             this.panel1.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)(this.txtIgnore)).BeginInit();
             this.SuspendLayout();
@@ -152,11 +153,23 @@ namespace JitMagic
 			this.btnRemoveUs.UseVisualStyleBackColor = true;
 			this.btnRemoveUs.Click += new System.EventHandler(this.btnRemoveUs_Click);
 			// 
+			// btnBlacklistPath
+			// 
+			this.btnBlacklistPath.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+			this.btnBlacklistPath.Location = new System.Drawing.Point(943, 193);
+			this.btnBlacklistPath.Name = "btnBlacklistPath";
+			this.btnBlacklistPath.Size = new System.Drawing.Size(196, 33);
+			this.btnBlacklistPath.TabIndex = 9;
+			this.btnBlacklistPath.Text = "Blacklist This App";
+			this.btnBlacklistPath.UseVisualStyleBackColor = true;
+			this.btnBlacklistPath.Click += new System.EventHandler(this.btnBlacklistPath_Click);
+			// 
             // JitMagic
             // 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.ClientSize = new System.Drawing.Size(1360, 251);
+			this.Controls.Add(this.btnBlacklistPath);
 			this.Controls.Add(this.btnRemoveUs);
 			this.Controls.Add(this.btnAttach);
 			this.Controls.Add(this.label2);
@@ -189,6 +202,7 @@ namespace JitMagic
 		private System.Windows.Forms.Label label2;
 		private System.Windows.Forms.Button btnAttach;
 		private System.Windows.Forms.Button btnRemoveUs;
+		private System.Windows.Forms.Button btnBlacklistPath;
     }
 }
 

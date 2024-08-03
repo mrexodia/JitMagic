@@ -19,6 +19,7 @@ using Windows.Win32;
 using Windows.Win32.Foundation;
 using Microsoft.Win32.SafeHandles;
 using Windows.Wdk.Storage.FileSystem;
+using System.Collections.Generic;
 namespace JitMagic {
 	public partial class JitMagic : Form {
 		class JitDebugger {
@@ -89,6 +90,7 @@ namespace JitMagic {
 			public DateTime IgnoringUntil { get; set; } = DateTime.FromFileTime(0);
 			public int OverrideWidth { get; set; } = 0;
 			public int OverrideHeight { get; set; } = 0;
+			public List<string> BlacklistedPaths { get; set; } = new();
 		}
 
 
@@ -133,21 +135,22 @@ namespace JitMagic {
 		}
 
 		public JitMagic(string[] Args) {
-
-
 			if (!File.Exists(ConfigFile))
 				SaveConfig();
-			string json=null;
+			string json = null;
 			try {
 				json = ReadWriteConfigFile(ConfigFile);
 				config = JsonConvert.DeserializeObject<Config>(json);
-			} catch {}
-			try {
-				if (!String.IsNullOrWhiteSpace(json))
-					config.JitDebuggers = JsonConvert.DeserializeObject<JitDebugger[]>(json);
-				SaveConfig();//save in new format
-			} catch {}
-			if (config.IgnoringUntil > DateTime.Now)
+				config.BlacklistedPaths ??= new();
+				config.BlacklistedPaths.RemoveAll(s => s == null);
+			} catch {
+				try {
+					if (!String.IsNullOrWhiteSpace(json))
+						config.JitDebuggers = JsonConvert.DeserializeObject<JitDebugger[]>(json);
+					SaveConfig();//save in new format
+				} catch { }
+			}
+			if (config.IgnoringUntil > DateTime.Now && Args.Length > 1)
 				Environment.Exit(0);
 
 
@@ -189,8 +192,12 @@ namespace JitMagic {
 				try {
 
 					var process = Process.GetProcessById(_pid);
+					processPath = GetProcessPath(_pid);
+					if (config.BlacklistedPaths.Any(black => black.Equals(processPath, StringComparison.CurrentCultureIgnoreCase)))
+						Environment.Exit(0);
+
 					var architecture = GetProcessArchitecture(process);
-					labelProcessInformation.Text = $"{Path.GetFileName(GetProcessPath(_pid))} ({architecture})";
+					labelProcessInformation.Text = $"{Path.GetFileName(processPath)} ({architecture})";
 					PopulateJitDebuggers(architecture);
 
 				} catch (Exception ex) {
@@ -202,6 +209,7 @@ namespace JitMagic {
 			}
 			listViewDebuggers.ItemActivate += OnItemClicked;
 		}
+		private string processPath;
 		private bool HaveInvokeDetails;
 
 		private void OnItemClicked(object sender, EventArgs e) {
@@ -419,7 +427,7 @@ namespace JitMagic {
 		private void btnIgnoreAll_Click(object sender, EventArgs e) {
 			config.IgnoringUntil = DateTime.Now.AddMinutes((double)txtIgnore.Value);
 			SaveConfig();
-			Environment.Exit(0);
+			Close();
 		}
 
 		private void btnRemoveUs_Click(object sender, EventArgs e) => DoAction(UpdateRegMode.Unregister);
@@ -471,5 +479,16 @@ namespace JitMagic {
 			}
 			return true;
 		}
+
+		private void btnBlacklistPath_Click(object sender, EventArgs e) {
+			var confirm = MessageBox.Show($"Are you sure you want to blacklist the executable path: {processPath} from future debugging? The only way to undo this is to manually edit the JitMagic.json file", $"Confirm Blacklist {Path.GetFileName(processPath)}", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
+			if (confirm != DialogResult.Yes)
+				return;
+			config.BlacklistedPaths.Add(processPath);
+			SaveConfig();
+			Close();
+		}
+		public static bool IsAsciiLetter(char c) => (uint)((c | 0x20) - 'a') <= 'z' - 'a';
 	}
+
 }
