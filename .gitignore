@@ -7,4 +7,3 @@ Release/
 Debug/
 x64/
 packages/
-*.csproj.user

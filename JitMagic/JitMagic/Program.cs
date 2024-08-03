@@ -14,19 +14,6 @@ namespace JitMagic
         [STAThread]
         static void Main(string[] Args)
         {
-            if (Args.Length == 1 && Args[0] == "-fixregistry")
-            {
-                try
-                {
-                    JitMagic.CheckRegistry(true);
-                }
-                catch (Exception x)
-                {
-                    MessageBox.Show($"Failed to fix registry: {x}");
-                }
-                return;
-            }
-
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             var jitMagic = new JitMagic(Args);
