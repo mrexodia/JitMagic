@@ -42,51 +42,50 @@ namespace JitMagic {
 		IntPtr _event;
 		class Config {
 			public JitDebugger[] JitDebuggers { get; set; } = new[] {
-				new JitDebugger("Visual Studio", Architecture.All)
-				{
-					FileName = @"C:\Windows\System32\vsjitdebugger.exe",
-					Arguments = "-p {pid} -e {debugSignalFd} -j 0x{jitDebugInfoPtr}"
-				},
-				 new JitDebugger("dnSpy (x64)", Architecture.x64) {
-					FileName = @"c:\Program Files\dnSpy\dnSpy.exe",
-					Arguments = "--dont-load-files --multiple -p {pid} -e {debugSignalFd} --jdinfo {jitDebugInfoPtr}"
-				},
-				 new JitDebugger("dnSpy (x86)", Architecture.x86) {
-					FileName = @"c:\Program Files\dnSpy\x86\dnSpy.exe",
-					Arguments = "--dont-load-files --multiple -p {pid} -e {debugSignalFd} --jdinfo {jitDebugInfoPtr}"
-				},
-				 new JitDebugger("WinDbg", Architecture.All)
-				{
-					FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\WindowsApps\WinDbgX.exe"),
-					Arguments = "-p {pid} -e {debugSignalFd} -g"
-				},
-				//"C:\Users\novanix\AppData\Local\Microsoft\WindowsApps\WinDbgX.exe" -p %ld -e %ld -g
-				new JitDebugger("Old WinDbg (x86)", Architecture.x86)
-				{
-					FileName = @"C:\Program Files (x86)\Windows Kits\10\Debuggers\x86\windbg.exe",
-					Arguments = "-p {pid} -e {debugSignalFd} -g"
-				},
-				new JitDebugger("Old WinDbg (x64)", Architecture.x64)
-				{
-					FileName = @"C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\windbg.exe",
-					Arguments = "-p {pid} -e {debugSignalFd} -g"
-				},
-				new JitDebugger("ProcDump MiniPlus", Architecture.All)
-				{
-					FileName = @"c:\Program Files\Sysinternals\procdump.exe",
-					Arguments = "-accepteula -mp -j \"c:/dumps\" {pid} {debugSignalFd} {jitDebugInfoPtr}",
-					IconOverridePath = @"C:\Windows\System32\MdRes.exe"
-				},
-				new JitDebugger("x32dbg", Architecture.x86)
-				{
-					FileName = @"c:\Program Files\x64Dbg\x32\x32dbg.exe",
-					Arguments = "-a {pid} -e {debugSignalFd}"
-				},
-				new JitDebugger("x64dbg", Architecture.x64)
-				{
-					FileName = @"c:\Program Files\x64Dbg\x64\x64dbg.exe",
-					Arguments = "-a {pid} -e {debugSignalFd}"
-				},
+			new JitDebugger("Visual Studio", Architecture.All)
+			{
+				FileName = @"C:\Windows\System32\vsjitdebugger.exe",
+				Arguments = "-p {0} -e {1} -j 0x{2}"
+			},
+			 new JitDebugger("dnSpy (x64)", Architecture.x64) {
+				FileName = @"c:\Program Files\dnSpy\dnSpy.exe",
+				Arguments = "--dont-load-files --multiple -p {0} -e {1} --jdinfo {2}"
+			},
+			 new JitDebugger("dnSpy (x86)", Architecture.x86) {
+				FileName = @"c:\Program Files\dnSpy\x86\dnSpy.exe",
+				Arguments = "--dont-load-files --multiple -p {0} -e {1} --jdinfo {2}"
+			},
+			 new JitDebugger("WinDbg", Architecture.All)
+			{
+				FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\WindowsApps\WinDbgX.exe"),
+				Arguments = "-p {0} -e {1} -g"
+			},
+			//"C:\Users\novanix\AppData\Local\Microsoft\WindowsApps\WinDbgX.exe" -p %ld -e %ld -g
+			new JitDebugger("Old WinDbg (x86)", Architecture.x86)
+			{
+				FileName = @"C:\Program Files (x86)\Windows Kits\10\Debuggers\x86\windbg.exe",
+				Arguments = "-p {0} -e {1} -g"
+			},
+			new JitDebugger("Old WinDbg (x64)", Architecture.x64)
+			{
+				FileName = @"C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\windbg.exe",
+				Arguments = "-p {0} -e {1} -g"
+			},
+			new JitDebugger("ProcDump MiniPlus", Architecture.All)
+			{
+				FileName = @"c:\Program Files\Sysinternals\procdump.exe",
+				Arguments = "-accepteula -mp -j \"c:/dumps\" {0} {1} {2}"
+			},
+			new JitDebugger("x32dbg", Architecture.x86)
+			{
+				FileName = @"c:\Program Files\x64Dbg\x32\x32dbg.exe",
+				Arguments = "-a {0} -e {1}"
+			},
+			new JitDebugger("x64dbg", Architecture.x64)
+			{
+				FileName = @"c:\Program Files\x64Dbg\x64\x64dbg.exe",
+				Arguments = "-a {0} -e {1}"
+			},
 		};
 			public int DefaultIgnoreMinutes { get; set; } = 3;
 			public bool PerformRegisteredCheckOnStart { get; set; } = true;
@@ -98,7 +97,7 @@ namespace JitMagic {
 
 
 
-		private enum APP_ACTION { None, RegCheck, Register, Unregister, AddDebugger, RemoveDebugger }
+		private enum UpdateRegMode { None, Check, Register, Unregister }
 
 		private Config config = new();
 		private void SaveConfig() {
@@ -126,60 +125,19 @@ namespace JitMagic {
 			}
 			return isAdmin;
 		}
-		private void DoAction(APP_ACTION mode, string[] args) {
-			switch (mode) {
-				case APP_ACTION.AddDebugger:
-				case APP_ACTION.RemoveDebugger:
-					AddRemoveDebugger(mode, args);
-					break;
-				case APP_ACTION.Register:
-				case APP_ACTION.Unregister:
-					EnsureAdmin(mode);
-					UpdateRegistration(mode);
-					MessageBox.Show(mode == APP_ACTION.Unregister ? "Removed Us" : "Registered");
-					break;
-			}
+		private void DoAction(UpdateRegMode mode) {
+			EnsureAdmin(mode);
+			UpdateRegistration(mode);
+			MessageBox.Show(mode == UpdateRegMode.Unregister ? "Removed Us" : "Registered");
 		}
-
-		private void AddRemoveDebugger(APP_ACTION mode, string[] args) {
-			try {
-				var pos = 1;
-
-				var name = (args.Length > pos) ? args[pos++] : throw new ArgumentException("To add/remove a debugger the name must be passed for the first arg");
-				config.JitDebuggers = config.JitDebuggers.Where(a => a.Name.Equals(name, StringComparison.CurrentCultureIgnoreCase) == false).ToArray();
-				if (mode == APP_ACTION.RemoveDebugger) {
-					SaveConfig();
-					MessageBox.Show($"Removed debuggers with name: {name}");
-					Close();
-				} else {
-					if (pos + 3 > args.Length)
-						throw new Exception($"To add a new debugger the form should be JitMagic.exe --add-debugger \"[DebuggerName]\" \"[DebuggerPath]\" \"[DebuggerArgs]\" [x86|x64|All] [AdditionalDelaySecs(optional)]");
-					var path = args[pos++];
-					var callArgs = args[pos++];
-					var architecture = args[pos++];
-					if (!Enum.TryParse<Architecture>(architecture, true, out var arch))
-						throw new Exception($"Archicture should be x64, x86, or All you passed: {architecture}");
-
-					var deb = new JitDebugger(name, arch) { FileName = path, Arguments = callArgs };
-					if (args.Length > pos && int.TryParse(args[pos++], out var addlDelaySecs))
-						deb.AdditionalDelaySecs = addlDelaySecs;
-					config.JitDebuggers = new[] { deb }.Union(config.JitDebuggers).ToArray();
-					SaveConfig();
-					MessageBox.Show($"Added debugger: {name}");
-				}
-			} catch (Exception ex) {
-
-			}
-		}
-
-		private void EnsureAdmin(APP_ACTION mode) {
+		private void EnsureAdmin(UpdateRegMode mode) {
 			if (IsUserAdministrator())
 				return;
 			Process.Start(new ProcessStartInfo {
 				FileName = Assembly.GetExecutingAssembly().Location,
 				UseShellExecute = true,
 				Verb = "runas",
-				Arguments = mode == APP_ACTION.Register ? "--register" : "--unregister",
+				Arguments = mode == UpdateRegMode.Register ? "--register" : "--unregister",
 			});
 			Environment.Exit(0);
 		}
@@ -187,11 +145,6 @@ namespace JitMagic {
 		public JitMagic(string[] Args) {
 			if (!File.Exists(ConfigFile))
 				SaveConfig();
-			var action = Args.Length > 0 ? Args[0] : null;
-			var appAction = APP_ACTION.None;
-			if (action != null && action.StartsWith("--") && Enum.TryParse<APP_ACTION>(action.Replace("-", ""), true, out var parsed))
-				appAction = parsed;
-
 			string json = null;
 			try {
 				json = ReadWriteConfigFile(ConfigFile);
@@ -209,13 +162,18 @@ namespace JitMagic {
 				Environment.Exit(0);
 
 
-
-			if (appAction == APP_ACTION.None && config.PerformRegisteredCheckOnStart && Args.Length != 1 && !UpdateRegistration(APP_ACTION.RegCheck)) {
+			var regAction = UpdateRegMode.None;
+			if (config.PerformRegisteredCheckOnStart && Args.Length != 1 && !UpdateRegistration(UpdateRegMode.Check)) {
 				if (MessageBox.Show("We are not currently the default JIT debugger do you want to make it us?", "Update JIT debugger to us?", MessageBoxButtons.YesNo) == DialogResult.Yes)
-					appAction = APP_ACTION.Register;
+					regAction = UpdateRegMode.Register;
+			} else if (Args.Length == 1) {
+				if (Args[0] == "--register")
+					regAction = UpdateRegMode.Register;
+				else if (Args[0] == "--unregister")
+					regAction = UpdateRegMode.Unregister;
 			}
-			if (appAction != APP_ACTION.None) {
-				DoAction(appAction, Args);
+			if (regAction != UpdateRegMode.None) {
+				DoAction(regAction);
 				Environment.Exit(0);
 			}
 
@@ -272,12 +230,8 @@ namespace JitMagic {
 			sec.nLength = (uint)Marshal.SizeOf(sec);
 
 			debugSignalEventForChild = HaveInvokeDetails ? PInvoke.CreateEvent(sec, true, false, null) : default;
-			var debuggerArgTemplate = jitDebugger.Arguments;
-			debuggerArgTemplate = debuggerArgTemplate.Replace("{pid", "{0").Replace("{debugSignalFd", "{1").Replace("{jitDebugInfoPtr", "{2");
-			if (debuggerArgTemplate.Contains("{0}") == false && debuggerArgTemplate.Contains("%ld")) // support standard AeDebug strings but only if they don't have one of the expected existing subs
-				debuggerArgTemplate = debuggerArgTemplate.Replace("%ld", "{0}").Replace("%ld", "{1}").Replace("%p", "{2}");
 
-			var args = string.Format(debuggerArgTemplate, _pid, debugSignalEventForChild.DangerousGetHandle().ToInt32(), JitDebugStructPtrAddy);
+			var args = string.Format(jitDebugger.Arguments, _pid, debugSignalEventForChild.DangerousGetHandle().ToInt32(), JitDebugStructPtrAddy);
 			var psi = new ProcessStartInfo {
 				UseShellExecute = false,
 				FileName = jitDebugger.FileName,
@@ -513,7 +467,7 @@ namespace JitMagic {
 			Close();
 		}
 
-		private void btnRemoveUs_Click(object sender, EventArgs e) => DoAction(APP_ACTION.Unregister, null);
+		private void btnRemoveUs_Click(object sender, EventArgs e) => DoAction(UpdateRegMode.Unregister);
 
 
 		/// <summary>
@@ -522,7 +476,7 @@ namespace JitMagic {
 		/// <param name="unregister"></param>
 		/// <param name="onlyCheck"></param>
 		/// <returns></returns>
-		private bool UpdateRegistration(APP_ACTION mode) {
+		private bool UpdateRegistration(UpdateRegMode mode) {
 			var spots = new string[] { @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug", @"SOFTWARE\WOW6432Node\Microsoft\Windows NT\CurrentVersion\AeDebug", @"SOFTWARE\WOW6432Node\Microsoft\VisualStudio\Debugger\JIT" };
 			var us = $@"""{Assembly.GetExecutingAssembly().Location}"" -p %ld -e %ld -j %p";
 			foreach (var spot in spots) {
@@ -530,19 +484,19 @@ namespace JitMagic {
 				var debugVal = isVSEntry ? "Native Debugger" : "Debugger";
 				var bkVal = "DebuggerBackup";
 
-				using var sub = Registry.LocalMachine.OpenSubKey(spot, mode != APP_ACTION.RegCheck);
+				using var sub = Registry.LocalMachine.OpenSubKey(spot, mode != UpdateRegMode.Check);
 
 				var curBk = sub.GetValue(bkVal) as string;
 				var cur = sub.GetValue(debugVal) as string;
-				var isUsNow = mode != APP_ACTION.Unregister ? cur.Equals(us, StringComparison.CurrentCultureIgnoreCase) : cur.StartsWith("\"" + Assembly.GetExecutingAssembly().Location, StringComparison.CurrentCultureIgnoreCase); //for unregistering we dont need exact match just to make sure its us
+				var isUsNow = mode != UpdateRegMode.Unregister ? cur.Equals(us, StringComparison.CurrentCultureIgnoreCase) : cur.StartsWith("\"" + Assembly.GetExecutingAssembly().Location, StringComparison.CurrentCultureIgnoreCase); //for unregistering we dont need exact match just to make sure its us
 
-				if (isUsNow ? mode != APP_ACTION.Unregister : mode == APP_ACTION.Unregister)
+				if (isUsNow ? mode != UpdateRegMode.Unregister : mode == UpdateRegMode.Unregister)
 					continue;
 
-				if (mode == APP_ACTION.RegCheck)
+				if (mode == UpdateRegMode.Check)
 					return false;
 
-				if (mode == APP_ACTION.Register) {
+				if (mode == UpdateRegMode.Register) {
 					if (curBk != us && !string.IsNullOrWhiteSpace(cur))
 						sub.SetValue(bkVal, cur);
 
