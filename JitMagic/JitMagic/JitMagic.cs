@@ -20,7 +20,6 @@ using Windows.Win32.Foundation;
 using Microsoft.Win32.SafeHandles;
 using Windows.Wdk.Storage.FileSystem;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 namespace JitMagic {
 	public partial class JitMagic : Form {
 		class JitDebugger {
@@ -33,7 +32,6 @@ namespace JitMagic {
 			public Architecture Architecture { get; }
 			public string FileName { get; set; }
 			public string Arguments { get; set; }
-			public string IconOverridePath { get; set; }
 			public int AdditionalDelaySecs { get; set; } = 0; // Additional time after it would normally exit where it exits.  Good for  misbehaving / non-signalling debuggers.
 		}
 
@@ -101,15 +99,9 @@ namespace JitMagic {
 
 		private Config config = new();
 		private void SaveConfig() {
-			try {
-				if (File.Exists(ConfigFile))
-					File.Copy(ConfigFile, BackupConfigFile, true);
-			} catch { }
-			ReadWriteConfigFile(ConfigFile, JsonConvert.SerializeObject(config, Formatting.Indented));
+			ReadWriteConfigFile(ConfigFile,JsonConvert.SerializeObject(config, Formatting.Indented));
 		}
-
 		public string ConfigFile => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "JitMagic.json");
-		public string BackupConfigFile => ConfigFile + ".bk";
 		public static bool IsUserAdministrator() {
 			//bool value to hold our return value
 			bool isAdmin;
@@ -212,9 +204,9 @@ namespace JitMagic {
 					MessageBox.Show("Error retrieving information! " + ex);
 				}
 				HaveInvokeDetails = true;
-			} else
+			} else {
 				PopulateJitDebuggers(Architecture.All);
-
+			}
 			listViewDebuggers.ItemActivate += OnItemClicked;
 		}
 		private string processPath;
@@ -365,45 +357,16 @@ namespace JitMagic {
 		}
 
 		void PopulateJitDebuggers(Architecture architecture) {
-			var iconFromAppRegex = new Regex(@"^(?<path>.+[.](?:exe|dll))(?:[,](?<index>[\-0-9]+))?$", RegexOptions.IgnoreCase);
 			listViewDebuggers.LargeImageList = new ImageList();
 			listViewDebuggers.LargeImageList.ImageSize = new Size(80, 60);
-
-			var GetIconMethod = (string path, int index) => Icon.ExtractAssociatedIcon(path);//backup method, downside is it can't take an index
-			try {
-				var mInfo = typeof(Icon).GetMethod(nameof(Icon.ExtractAssociatedIcon), System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
-				if (mInfo != null) {
-					var args = mInfo.GetParameters();
-					if (args.Length == 2 && args[0].ParameterType == typeof(string) && args[1].ParameterType == typeof(int))
-						GetIconMethod = (string path, int index) => (Icon)mInfo.Invoke(null, [path, index]);
-				}
-			} catch { }
-
-
 			for (var i = 0; i < config.JitDebuggers.Length; i++) {
 				var jitDebugger = config.JitDebuggers[i];
 				if (!File.Exists(jitDebugger.FileName))
 					continue;
-				Icon icon = null;
-				try {
-					var extractPath = jitDebugger.FileName;
-					var extractIndex = 0;
-					if (!String.IsNullOrWhiteSpace(jitDebugger.IconOverridePath)) {
-						var extractMatch = iconFromAppRegex.Match(jitDebugger.IconOverridePath);
-						if (extractMatch.Success) {
-							extractPath = extractMatch.Groups["path"].Value;
-							if (extractMatch.Groups["index"].Success)
-								extractIndex = int.Parse(extractMatch.Groups["index"].Value);
-						} else
-							icon = new Icon(jitDebugger.IconOverridePath);
 
-					}
-					if (icon == null)
-						icon = GetIconMethod(extractPath, extractIndex);
-				} catch { }
-				if (icon == null)
-					icon = Icon;
+				var icon = Icon.ExtractAssociatedIcon(jitDebugger.FileName);
 				listViewDebuggers.LargeImageList.Images.Add(icon.ToBitmap());
+
 
 				if (architecture == Architecture.All || jitDebugger.Architecture == architecture || jitDebugger.Architecture == Architecture.All) {
 					listViewDebuggers.Items.Add(new ListViewItem(jitDebugger.Name) {
