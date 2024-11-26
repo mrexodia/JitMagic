@@ -3,7 +3,7 @@ using System.Drawing;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Windows;
-#if WPF
+#if IS_WPF
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -70,13 +70,13 @@ namespace JitMagic.Models {
 			} catch { }
 			if (icon == null)
 				icon = fallback;
-#if WPF
+#if IS_WPF
 			DisplayIcon = ToImageSource(icon);
 #endif
 		}
 
 		public Icon icon;
-#if WPF
+#if IS_WPF
 		[JsonIgnore]
 		public ImageSource DisplayIcon { get; set; }
 		private static ImageSource ToImageSource(Icon icon) {
