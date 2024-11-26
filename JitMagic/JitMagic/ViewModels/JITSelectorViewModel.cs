@@ -10,7 +10,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-#if ! WPF
+#if ! IS_WPF
 using System.Windows.Forms;
 #endif
 using JitMagic.Models;
@@ -171,7 +171,7 @@ namespace JitMagic.ViewModels {
 
 		public OurCommand BlacklistAppCmd => GetOurCmdSync(BlacklistApp);
 		public void BlacklistApp() {
-#if WPF
+#if IS_WPF
 			var confirm = MessageBox.Show($"Are you sure you want to blacklist the executable path: {processPath} from future debugging? The only way to undo this is to manually edit the JitMagic.json file", $"Confirm Blacklist {Path.GetFileName(processPath)}", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
 			if (confirm != MessageBoxResult.Yes)
 				return;

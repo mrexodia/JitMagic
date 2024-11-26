@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
 		<TargetFramework>net472</TargetFramework>
-		<UseWindowsForms>true</UseWindowsForms>
+		<UseWPF>true</UseWPF>
 		<ApplicationIcon>JitMagic.ico</ApplicationIcon>
 		<PlatformTarget>x64</PlatformTarget>
 		<LangVersion>preview</LangVersion>
@@ -12,9 +12,12 @@
 		<PackageProjectUrl>https://github.com/mrexodia/JitMagic</PackageProjectUrl>
 		<Copyright>Copyright © x64dbg</Copyright>
 		<Platforms>x64</Platforms>
+		<DefineConstants>$(DefineConstants);IS_WPF</DefineConstants>
 		<RepositoryUrl>https://github.com/mrexodia/JitMagic</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 	</PropertyGroup>
+
+	
 	<ItemGroup>
 		<Resource Include="JitMagic.ico">
 		  <CopyToOutputDirectory>Never</CopyToOutputDirectory>

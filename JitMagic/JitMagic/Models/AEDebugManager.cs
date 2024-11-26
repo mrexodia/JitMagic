@@ -11,7 +11,7 @@ using Microsoft.Win32;
 using Microsoft.Win32.SafeHandles;
 using System.Diagnostics;
 using HANDLE = Windows.Win32.Foundation.HANDLE;
-#if ! WPF
+#if ! IS_WPF
 using System.Windows.Forms;
 #endif
 

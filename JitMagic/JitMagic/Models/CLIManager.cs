@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-#if ! WPF
+#if ! IS_WPF
 using System.Windows.Forms;
 #endif
 
@@ -64,13 +64,13 @@ namespace JitMagic.Models {
 
 			if (mode == APP_ACTION.None && config.Config.PerformRegisteredCheckOnStart && !aeDebug.UpdateRegistration(APP_ACTION.RegCheck)) {
 				if (MessageBox.Show("We are not currently the default JIT debugger, should we set ourselves as the automatic debugger?", "Update JIT debugger to us?",
-#if WPF
+#if IS_WPF
 					MessageBoxButton.YesNo
 #else
 					MessageBoxButtons.YesNo
 #endif
 					) ==
-#if WPF
+#if IS_WPF
 					MessageBoxResult.Yes
 #else
 					DialogResult.Yes
