@@ -1,0 +1,30 @@
+env:
+  NUKE_TELEMETRY_OPTOUT: 1
+name: continuous
+
+on:
+  push:
+    branches-ignore:
+      - trash
+
+jobs:
+  continuous:
+    name: Run
+    runs-on: windows-latest
+    defaults:
+        run:
+          shell: pwsh
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Run Build
+        run: ./build.ps1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: JitMagic
+          path: JitMagic\JitMagic\bin\x64\Release\net472\publish
