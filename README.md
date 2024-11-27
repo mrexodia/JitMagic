@@ -1,10 +1,10 @@
-
 # JitMagic
 
-JitMagic is a tool that allows you to have multiple Just-In-Time debuggers at once.  It is able to also pass JIT operations off to other JIT debuggers like Visual Studio's JIT choice form.
+JitMagic is a tool that allows you to have multiple Just-In-Time debuggers at once.  It is able to also pass JIT operations off to other JIT debuggers like Visual Studio's JIT choice form.  There should not be any functionality loss with a debugger by switching to JitMagic (full AeDebug featureset and eventing supported).
 
 ![Screenshot](https://raw.githubusercontent.com/mrexodia/JitMagic/master/screenshot.png "Screenshot")
 
+[![](https://github.com/mrexodia/JitMagic/workflows/continuous/badge.svg)](https://github.com/mrexodia/JitMagic/actions/workflows/continuous.yml?query=branch%3Amaster)
 <!-- MarkdownTOC -->
 
 - [Features](#features)
@@ -56,7 +56,7 @@ Run `JitMigic.exe --unregister` or launch JitMigic without any command line args
 ## For Debugger Developers
 ### Adding your debugger to JitMagic
 
-Do you have a debugger you want JitMagic to offer? Great. For the most part if your app can already be used as a native AeDebug app it should work seamlessly with JitMagic.  If your app does not support AeDebug style debugging already see [#How your debugger should behave] below for details on how it may still work.  The recommend way of registering yourself with JitMagic is to check the AeDebug Debugger key `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug\Debugger` if it contains JitMagic.exe offer your users the option to add the debugger to JitMagic.
+Do you have a debugger you want JitMagic to offer? Great. For the most part if your app can already be used as a native AeDebug app it should work seamlessly with JitMagic.  If your app does not support AeDebug style debugging already see [How your debugger should behave](#how-your-debugger-should-behave) below for details on how it may still work.  The recommend way of registering yourself with JitMagic is to check the AeDebug Debugger key `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug\Debugger` if it contains JitMagic.exe offer your users the option to add the debugger to JitMagic.
 
 If they want to proceed take the executable path for JitMagic.exe (from the Debugger registry key you can extract its path similar to
 ```csharp

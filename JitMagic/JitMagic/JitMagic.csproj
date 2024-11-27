@@ -15,6 +15,9 @@
 		<DefineConstants>$(DefineConstants);IS_WPF</DefineConstants>
 		<RepositoryUrl>https://github.com/mrexodia/JitMagic</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
+		<AssemblyVersion>2.0.0.0</AssemblyVersion>
+		<FileVersion>$(AssemblyVersion)</FileVersion>
+		<Version>$(AssemblyVersion)</Version>
 	</PropertyGroup>
 
 	
