@@ -74,7 +74,7 @@ namespace JitMagic.Models {
 			DisplayIcon = ToImageSource(icon);
 #endif
 		}
-
+		[JsonIgnore]
 		public Icon icon;
 #if IS_WPF
 		[JsonIgnore]
