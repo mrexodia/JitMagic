@@ -40,6 +40,8 @@ namespace JitMagic.Models {
 
 			if (mode == APP_ACTION.None) {
 				if (action == "-p") {
+					if (config.Config.IgnoringUntil > DateTime.Now)
+						Environment.Exit(0);
 					try {
 						target = new();
 						target.Pid = int.Parse(GetNextArg());
