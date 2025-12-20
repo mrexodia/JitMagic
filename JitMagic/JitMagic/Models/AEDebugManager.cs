@@ -11,7 +11,7 @@ using Microsoft.Win32;
 using Microsoft.Win32.SafeHandles;
 using System.Diagnostics;
 using HANDLE = Windows.Win32.Foundation.HANDLE;
-#if ! IS_WPF
+#if !IS_WPF
 using System.Windows.Forms;
 #endif
 
@@ -27,39 +27,53 @@ namespace JitMagic.Models {
 		public bool UpdateRegistration(APP_ACTION mode) {
 			var spots = new string[] { @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug", @"SOFTWARE\WOW6432Node\Microsoft\Windows NT\CurrentVersion\AeDebug", @"SOFTWARE\WOW6432Node\Microsoft\VisualStudio\Debugger\JIT" };
 			var us = $@"""{Assembly.GetExecutingAssembly().Location}"" {OurAeDebugArgs}";
+			var writeMode = mode != APP_ACTION.RegCheck && mode != APP_ACTION.Screenshot;
 			foreach (var spot in spots) {
 				var isVSEntry = spot.EndsWith("JIT");
 				var debugVal = isVSEntry ? "Native Debugger" : "Debugger";
 				var bkVal = "DebuggerBackup";
 
-				using var sub = Registry.LocalMachine.OpenSubKey(spot, mode != APP_ACTION.RegCheck);
 
-				var curBk = sub.GetValue(bkVal) as string;
-				var cur = sub.GetValue(debugVal) as string;
-				var isUsNow = mode != APP_ACTION.Unregister ? cur.Equals(us, StringComparison.CurrentCultureIgnoreCase) : cur.StartsWith("\"" + Assembly.GetExecutingAssembly().Location, StringComparison.CurrentCultureIgnoreCase); //for unregistering we dont need exact match just to make sure its us
+				var sub = Registry.LocalMachine.OpenSubKey(spot, writeMode);
+				try {
+					if (sub == null)
+						if (writeMode)
+							sub = Registry.LocalMachine.CreateSubKey(spot);
+						else
+							if (mode == APP_ACTION.RegCheck)
+								return false;
+							else
+								continue;
 
-				if (isUsNow ? mode != APP_ACTION.Unregister : mode == APP_ACTION.Unregister)
-					continue;
+					var curBk = sub.GetValue(bkVal) as string;
+					var cur = sub.GetValue(debugVal) as string;
+					var isUsNow = (mode != APP_ACTION.Unregister ? cur?.Equals(us, StringComparison.CurrentCultureIgnoreCase) : cur?.StartsWith("\"" + Assembly.GetExecutingAssembly().Location, StringComparison.CurrentCultureIgnoreCase)) == true; //for unregistering we dont need exact match just to make sure its us
 
-				if (mode == APP_ACTION.RegCheck)
-					return false;
+					if (isUsNow ? mode != APP_ACTION.Unregister : mode == APP_ACTION.Unregister)
+						continue;
 
-				if (mode == APP_ACTION.Register) {
-					if (curBk != us && !string.IsNullOrWhiteSpace(cur))
-						sub.SetValue(bkVal, cur);
+					if (mode == APP_ACTION.RegCheck)
+						return false;
 
-					sub.SetValue(debugVal, us);
-					if (!isVSEntry)
-						sub.SetValue("Auto", 1);
-				} else { //unregister
-					if (string.IsNullOrWhiteSpace(curBk)) {
-						sub.DeleteValue(debugVal);
+					if (mode == APP_ACTION.Register) {
+						if (curBk != us && !string.IsNullOrWhiteSpace(cur))
+							sub.SetValue(bkVal, cur);
+
+						sub.SetValue(debugVal, us);
 						if (!isVSEntry)
-							sub.SetValue("Auto", 0);
-					} else {
-						sub.SetValue(debugVal, curBk);
-						sub.DeleteValue(bkVal);
+							sub.SetValue("Auto", 1);
+					} else { //unregister
+						if (string.IsNullOrWhiteSpace(curBk)) {
+							sub.DeleteValue(debugVal);
+							if (!isVSEntry)
+								sub.SetValue("Auto", 0);
+						} else {
+							sub.SetValue(debugVal, curBk);
+							sub.DeleteValue(bkVal);
+						}
 					}
+				} finally {
+					sub?.Dispose();
 				}
 			}
 			if (mode == APP_ACTION.Register || mode == APP_ACTION.Unregister)
