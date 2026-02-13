@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -119,5 +119,20 @@ namespace JitMagic.Models {
 		public int OverrideWidth { get; set; } = 0;
 		public int OverrideHeight { get; set; } = 0;
 		public List<string> BlacklistedPaths { get; set; } = new();
+		public string CaptureDebuggerOutputTo { get; set; } = null;
+
+		/// <summary>
+		/// By default if you don't launch a debugger but close us we will kill the process to prevent the system just relaunching the debugger.
+		/// </summary>
+		public bool DontKillTargetProcessOnNonDebugExit {get; set; } = false;
+		/// <summary>
+		/// If DontKillTargetProcessOnNonDebugExit is false but you don't want us to specifically kill blacklisted processes set this to true
+		/// </summary>
+		public bool DontKillBlacklistedProcesses {get; set; } = false;
+
+		/// <summary>
+		/// If our target process dies before we launch a debugger automatically close our UI after this many seconds, 0 means exit right away , null means never automatically exit
+		/// </summary>
+		public int? OnProcDieAutoCloseAfterSecs {get; set; }
 	}
 }

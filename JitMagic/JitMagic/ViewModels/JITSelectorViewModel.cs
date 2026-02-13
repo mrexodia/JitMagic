@@ -7,10 +7,11 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-#if ! IS_WPF
+#if !IS_WPF
 using System.Windows.Forms;
 #endif
 using JitMagic.Models;
@@ -71,14 +72,14 @@ namespace JitMagic.ViewModels {
 				processPath = cli.target.ProcPath;
 				ProcessInfo = $"{Path.GetFileName(processPath)} ({cli.target.Architecture})";
 #if IS_WPF
-				
+
 				StandardLaunchOnlyVisibility = Visibility.Collapsed;
-			} else if (cli.mode == APP_ACTION.Screenshot){
+			} else if (cli.mode == APP_ACTION.Screenshot) {
 				AEDebugOnlyVisibility = Visibility.Collapsed;
 				WindowTitle += $" - PID: 4";
 				ProcessInfo = $"lsass.exe (x86)";
 			} else {
-				LeftCommandColWidth = new GridLength( 0);
+				LeftCommandColWidth = new GridLength(0);
 				AEDebugOnlyVisibility = Visibility.Collapsed;
 				AttachText = "Launch";
 #endif
@@ -91,7 +92,19 @@ namespace JitMagic.ViewModels {
 				debuggers.Add(debugger);
 			}
 			selected_debugger = debuggers.FirstOrDefault();
+			if (cli.mode == APP_ACTION.AEDebug)
+				WatchForExit();
 		}
+		
+		private async void WatchForExit() {
+			while (lastKnownStatus == CLIManager.RequestedTargetProc.TARGET_STATUS.Waiting) {
+				CheckProcessStillRunning();
+				await Task.Delay(1000);
+				
+			}
+
+		}
+
 		public OurCommand LaunchNormalCmd => GetOurCmdSync(LaunchNormal);
 		public void LaunchNormal() {
 			TopMost = false;
@@ -131,11 +144,18 @@ namespace JitMagic.ViewModels {
 		}
 		private int _WinWidth = 1000;
 
+
+		public OurCommand CloseCmd => GetOurCmdSync(Close);
+
 		public void Close() {
-			aeDebug.SignalResume();
-			CloseWin?.Invoke(this, null);
+			HideWin?.Invoke(this, null);
+			if (cli.mode == APP_ACTION.AEDebug)
+				aeDebug.SilentExit(cli.target.Process);
+			else
+				Environment.Exit(0);
+
 		}
-		public event EventHandler CloseWin;
+		public event EventHandler FocusAutoExitNowBtn;
 		public event EventHandler HideWin;
 
 		public int IgnoreForMinutes {
@@ -156,16 +176,45 @@ namespace JitMagic.ViewModels {
 			var debugger = selected_debugger;
 			if (debugger == null)
 				return;
-			if (pid != 0)
+			CheckProcessStillRunning();
+			var shouldAutoClose = cli.target.Status == CLIManager.RequestedTargetProc.TARGET_STATUS.Waiting;
+			if (shouldAutoClose) // if we are in 'launcher' mode then we dont hide ourselves
 				HideWin?.Invoke(this, null);
 			await Task.Delay(10);
 			aeDebug.StartDebugger(debugger, pid, cli.target?.JitDebugStructPtrAddy);
-			if (pid != 0)
+			DebuggerAttached=true;
+			if (shouldAutoClose) // if we are in 'launcher' mode then we dont close
 				DelayClose(debugger.AdditionalDelaySecs);
 		}
+		private bool DebuggerAttached;
 		private async void DelayClose(int extraDelaySecs) {
 			if (extraDelaySecs > 0)
 				await Task.Delay(TimeSpan.FromSeconds(extraDelaySecs));
+			aeDebug.SignalResume();
+			Close();
+		}
+		CLIManager.RequestedTargetProc.TARGET_STATUS lastKnownStatus = CLIManager.RequestedTargetProc.TARGET_STATUS.Waiting;
+		public void CheckProcessStillRunning() {
+			if (DebuggerAttached || cli.mode != APP_ACTION.AEDebug || lastKnownStatus != CLIManager.RequestedTargetProc.TARGET_STATUS.Waiting)
+				return;
+			var status = cli.target.Status;
+			if (status == lastKnownStatus)
+				return;
+			lastKnownStatus = status;
+			RaisePropertyChanged(() => ProcessExitedEarlyOverlayVisible);
+			RaisePropertyChanged(() => ProcessExitedEarlyOverlayText);
+			
+			if (status != CLIManager.RequestedTargetProc.TARGET_STATUS.Waiting && config.Config.OnProcDieAutoCloseAfterSecs != 0) 
+				AutoExit(config.Config.OnProcDieAutoCloseAfterSecs.Value);
+
+			FocusAutoExitNowBtn?.Invoke(this, null);
+		}
+
+		private async void AutoExit(int secs) {
+			while (secs > 0) {
+				OnProcDieAutoCloseAfterSecs = secs--;
+				await Task.Delay(TimeSpan.FromSeconds(1));
+			}
 			Close();
 		}
 
@@ -182,7 +231,7 @@ namespace JitMagic.ViewModels {
 #endif
 			config.Config.BlacklistedPaths.Add(processPath);
 			config.SaveConfig();
-			Close();
+			aeDebug.SilentExit(cli.target.Process, config.Config.DontKillTargetProcessOnNonDebugExit || config.Config.DontKillBlacklistedProcesses);
 		}
 
 		public string processPath {
@@ -238,6 +287,27 @@ namespace JitMagic.ViewModels {
 		}
 		private JitDebugger _selected_debugger;
 
+		public Visibility ProcessExitedEarlyOverlayVisible => cli.mode != APP_ACTION.AEDebug || cli.target.Status == CLIManager.RequestedTargetProc.TARGET_STATUS.Waiting ? Visibility.Collapsed : Visibility.Visible;
+
+		public string ProcessExitedEarlyOverlayText {
+			get {
+				if (cli.mode != APP_ACTION.AEDebug)
+					return "";
+				if (cli.target.Status == CLIManager.RequestedTargetProc.TARGET_STATUS.NotFound)
+					return "Target process from -pid not found (or exited fast)";
+				
+				return "Target process exited before a debugger was attached (generally something external killed it)";
+				
+			}
+		}
+
+		public Visibility AutoExitWarningTextVisibile => config.Config.OnProcDieAutoCloseAfterSecs == null ? Visibility.Collapsed : Visibility.Visible;
+		public int AutoExitAfterSecs => config.Config.OnProcDieAutoCloseAfterSecs ?? 0;
+
+		public int OnProcDieAutoCloseAfterSecs {
+			get; set => Set(ref field, value);
+		}
+
 
 		public ObservableCollection<JitDebugger> debuggers {
 			get => _debuggers;
@@ -245,10 +315,6 @@ namespace JitMagic.ViewModels {
 		}
 		private ObservableCollection<JitDebugger> _debuggers = new();
 
-		public void test() {
-			var ico = Icon.ExtractAssociatedIcon("test");
-
-		}
 
 	}
 }

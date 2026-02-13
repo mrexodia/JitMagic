@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -42,7 +42,7 @@ namespace JitMagic.Models {
 		}
 		public static Architecture GetProcessArchitecture(Process p) {
 			if (p.Id == 0 || p.HasExited)
-				return Architecture.x64;
+				return Architecture.Invalid;
 			if (Environment.Is64BitOperatingSystem) {
 				if (Windows.Win32.PInvoke.IsWow64Process(new SafeProcessHandle(p.Handle, false), out var iswow64)) {
 					return iswow64 ? Architecture.x86 : Architecture.x64;

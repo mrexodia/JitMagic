@@ -17,7 +17,8 @@ namespace JitMagic.Models {
 	public enum Architecture {
 		x64 = 1 << 0,
 		x86 = 1 << 1,
-		All = x86 | x64
+		All = x86 | x64,
+		Invalid = 1 << 2,
 	}
 	public class JitDebugger {
 		public JitDebugger(string name, Architecture architecture) {

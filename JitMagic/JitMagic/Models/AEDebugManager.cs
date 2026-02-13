@@ -91,7 +91,7 @@ namespace JitMagic.Models {
 		IntPtr _event;
 		public void SetEventFD(IntPtr fd) => _event = fd;
 		private SafeFileHandle debugSignalEventForChild;
-		public void StartDebugger(JitDebugger jitDebugger, int targetPid, String JitDebugStructPtrAddy) {
+		public void StartDebugger(JitDebugger jitDebugger, int targetPid, String JitDebugStructPtrAddy, String CaptureDebuggerOutputTo = null) {
 
 			var sec = new Windows.Win32.Security.SECURITY_ATTRIBUTES { bInheritHandle = true };
 			sec.nLength = (uint)Marshal.SizeOf(sec);
@@ -103,17 +103,55 @@ namespace JitMagic.Models {
 				debuggerArgTemplate = debuggerArgTemplate.Replace("%ld", "{0}").Replace("%ld", "{1}").Replace("%p", "{2}");
 
 			var args = string.Format(debuggerArgTemplate, targetPid, debugSignalEventForChild?.DangerousGetHandle().ToInt32() ?? 0, JitDebugStructPtrAddy);
+			var CaptureProcOutput = !String.IsNullOrWhiteSpace(CaptureDebuggerOutputTo);
 			var psi = new ProcessStartInfo {
 				UseShellExecute = false,
 				FileName = jitDebugger.FileName,
 				Arguments = args,
 			};
+			StringBuilder sb = null;
+
+			if (CaptureProcOutput) {
+				sb = new();
+				psi.RedirectStandardOutput = true;
+				psi.RedirectStandardError = true;
+				psi.StandardOutputEncoding = Encoding.UTF8;
+				psi.StandardErrorEncoding = Encoding.UTF8;
+			}
 			// Undocumented feature of vsjitdebugger.exe that will halt it until a debugger is attached.
 			//psi.EnvironmentVariables.Add("VS_Debugging_PauseOnStartup", "1");
 			var p = Process.Start(psi);
+			if (CaptureProcOutput) {
+				p.OutputDataReceived += (sender, args) => sb.AppendLine(args.Data);
+				p.ErrorDataReceived += (sender, args) => sb.AppendLine(args.Data);
+				p.BeginOutputReadLine();
+				p.BeginErrorReadLine();
+
+			}
 			if (_event != IntPtr.Zero) {
 				PInvoke.WaitForMultipleObjects([new HANDLE(debugSignalEventForChild.DangerousGetHandle()), new HANDLE(p.Handle)], false, uint.MaxValue);
 			}
+			if (CaptureProcOutput) {
+				p.WaitForExit();
+				System.IO.File.WriteAllText(CaptureDebuggerOutputTo, sb.ToString());
+			}
+
+		}
+
+		internal void SilentExit(Process proc, bool dontKillFirst = false) {
+			//if we dont kill and wait for it to exit likely the debugger will relaunch
+			if (!dontKillFirst && proc != null && proc.Id != 0) {
+				if (proc?.HasExited == false) {
+					try {
+
+						proc.Kill();
+						proc.WaitForExit(10000);
+					} catch { }
+					System.Threading.Thread.Yield();
+					System.Threading.Thread.Sleep(1000);
+				}
+			}
+			Environment.Exit(0);
 		}
 	}
 }

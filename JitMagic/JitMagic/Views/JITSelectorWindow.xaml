@@ -91,5 +91,21 @@
 			</ScrollViewer>
 
 		</Grid>
+
+		<Grid Visibility="{Binding ProcessExitedEarlyOverlayVisible}" Grid.RowSpan="20" Grid.ColumnSpan="10" Background="#FFECEBEB">
+			<Grid.RowDefinitions>
+				<RowDefinition Height="*" />
+				<RowDefinition Height="*" />
+				<RowDefinition Height="Auto" />
+			</Grid.RowDefinitions>
+			<TextBlock Text="{Binding ProcessExitedEarlyOverlayText}" FontSize="16" Foreground="Red" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center" />
+			<TextBlock Visibility="{Binding AutoExitWarningTextVisibile}" Grid.Row="1" HorizontalAlignment="Center" FontSize="14" VerticalAlignment="Center" FontFamily="Consolas">
+				<Run Text="We will auto close in " />
+				<Run Text="{Binding OnProcDieAutoCloseAfterSecs, StringFormat='{}{0,2}'}" />
+				<Run Text=" seconds (change with config option: OnProcDieAutoCloseAfterSecs)" />
+			</TextBlock>
+			<Button Content="Close Now" Command="{Binding CloseCmd}"  Name="btnProcExitedClose" Grid.Row="2" />
+		</Grid>
 	</Grid>
+
 </Window>

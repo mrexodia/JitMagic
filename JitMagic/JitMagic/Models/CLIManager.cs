@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-#if ! IS_WPF
+#if !IS_WPF
 using System.Windows.Forms;
 #endif
 
@@ -26,40 +26,61 @@ namespace JitMagic.Models {
 		public int ArgsLeft => args.Length - CurArg;
 		public class RequestedTargetProc {
 			public int Pid;
+			public Process Process;
+			public bool HasExited => Process?.HasExited ?? true;
 			public int EventHandleFD;
 			public string JitDebugStructPtrAddy;
 			public string ProcPath;
-			public Architecture Architecture;
+			public Architecture Architecture = Architecture.Invalid;
+			public enum TARGET_STATUS { NotFound, Waiting, Exited }
+			public TARGET_STATUS Status => Process == null ? TARGET_STATUS.NotFound : HasExited ? TARGET_STATUS.Exited : TARGET_STATUS.Waiting;
 		}
 		public RequestedTargetProc target;
+		public string ErrorMsg;
 		public CLIManager(ConfigManager config, AEDebugManager aeDebug, string[] args) {
 			this.args = args;
 			var action = GetNextArg();
 			if (action != null && action.StartsWith("--") && Enum.TryParse<APP_ACTION>(action.Replace("-", ""), true, out var parsed))
 				mode = parsed;
 
+			if (mode == APP_ACTION.AEDebug) {
+				MessageBox.Show("AEDebug mode should not be passed with --AEdebug but rather by passing -p with the pid to debug", "Invalid Arg", MessageBoxButton.OK, MessageBoxImage.Error);
+				Environment.Exit(1);
+			}
+
 			if (mode == APP_ACTION.None) {
+				
+
 				if (action == "-p") {
+					mode = APP_ACTION.AEDebug;
 					if (config.Config.IgnoringUntil > DateTime.Now)
-						Environment.Exit(0);
+						aeDebug.SilentExit(target.Process, config.Config.DontKillTargetProcessOnNonDebugExit);
 					try {
 						target = new();
 						target.Pid = int.Parse(GetNextArg());
-						if (GetNextArg() == "-e"){
+						if (GetNextArg() == "-e") {
 							target.EventHandleFD = int.Parse(GetNextArg());
 							aeDebug.SetEventFD(new IntPtr(target.EventHandleFD));
 						}
 						if (GetNextArg() == "-j")
 							target.JitDebugStructPtrAddy = GetNextArg();
-						var process = Process.GetProcessById(target.Pid);
-						target.ProcPath = ProcHelper.GetProcessPath(process);
-						if (config.Config.BlacklistedPaths.Any(black => black.Equals(target.ProcPath, StringComparison.CurrentCultureIgnoreCase)))
-							Environment.Exit(0);
+						try {
+							target.Process = Process.GetProcessById(target.Pid);
+						} catch (ArgumentException) { } //processes exited (or we got an invalid pid arg)
 
-						target.Architecture = ProcHelper.GetProcessArchitecture(process);
-						mode = APP_ACTION.AEDebug;
+
+						if (target.Status == RequestedTargetProc.TARGET_STATUS.Waiting) {
+							target.ProcPath = ProcHelper.GetProcessPath(target.Process);
+							if (String.IsNullOrWhiteSpace(target.ProcPath) && target.Status == RequestedTargetProc.TARGET_STATUS.Waiting)
+								target.ProcPath = target.Process.MainModule?.FileName;//try this if the WMI query failed, may still fail if process is protected but worth a shot
+							if (config.Config.BlacklistedPaths.Contains(target.ProcPath, StringComparer.CurrentCultureIgnoreCase))
+								aeDebug.SilentExit(target.Process, config.Config.DontKillBlacklistedProcesses || config.Config.DontKillBlacklistedProcesses);//this will hard exit us
+							target.Architecture = ProcHelper.GetProcessArchitecture(target.Process);
+						}
+
+
 					} catch (Exception ex) {
-						MessageBox.Show("Error retrieving information! " + ex);
+						ErrorMsg = ex.Message;
 					}
 				}
 			}
@@ -103,17 +124,13 @@ namespace JitMagic.Models {
 						if (ArgsLeft > 0 && int.TryParse(GetNextArg(), out var addlDelaySecs))
 							deb.AdditionalDelaySecs = addlDelaySecs;
 						config.AddDebugger(deb);
-					
+
 					}
 					break;
 				case APP_ACTION.Register:
 				case APP_ACTION.Unregister:
 					ProcHelper.EnsureAdminOrRestartWith(this.mode == APP_ACTION.Register ? "--register" : "--unregister");
 					aeDebug.UpdateRegistration(this.mode);
-					break;
-				case APP_ACTION.AEDebug:
-					if (config.Config.IgnoringUntil > DateTime.Now)
-						Environment.Exit(0);
 					break;
 			}
 		}
