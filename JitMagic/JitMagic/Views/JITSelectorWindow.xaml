@@ -9,12 +9,7 @@
 	<Window.DataContext>
 		<vm:JITSelectorViewModel/>
 	</Window.DataContext>
-	<Window.Resources>
-		<Style BasedOn="{StaticResource {x:Type Button}}" TargetType="{x:Type Button}">
-			<Setter Property="Margin" Value="5" />
-			<Setter Property="Padding" Value="3" />
-		</Style>
-	</Window.Resources>
+	
 	<Grid Margin="5" >
 		<Grid Visibility="{Binding ProcessExitedEarlyOverlayVisible, Converter={StaticResource boolVisibilityConverter}, ConverterParameter=1}">
 			<Grid.RowDefinitions>
@@ -22,17 +17,23 @@
 				<RowDefinition  />
 				<RowDefinition Height="Auto"/>
 			</Grid.RowDefinitions>
-			<TextBlock Margin="5,5,5,0" Text="{Binding ProcessInfo}" />
+			<Grid Margin="5,5,5,0">
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="*"/>
+					<ColumnDefinition Width="Auto"/>
+				</Grid.ColumnDefinitions>
+				<TextBlock Text="{Binding ProcessInfo}" VerticalAlignment="Center"/>
+				<Button Grid.Column="1" Content="&#x2699;" Command="{Binding OpenSettingsCmd}" Padding="5,0" Margin="5,0,0,0" ToolTip="Settings"/>
+			</Grid>
 			<ListBox x:Name="listDebuggers" IsSynchronizedWithCurrentItem="True" KeyDown="ListBox_KeyDown" Margin="5" ItemsSource="{Binding debuggers}" SelectedItem="{Binding selected_debugger, Mode=TwoWay}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"  ScrollViewer.VerticalScrollBarVisibility="Auto" Grid.Row="1" >
 				<ListBox.ItemContainerStyle>
-					<Style TargetType="ListBoxItem">
+					<Style TargetType="ListBoxItem"  BasedOn="{StaticResource DefaultListBoxItemStyle}">
 						<Setter Property="Padding" Value="0"/>
+						<Setter Property="Margin" Value="5,5,5,0" />
 					</Style>
 				</ListBox.ItemContainerStyle>
 				<ListBox.Resources>
-					<Style TargetType="{x:Type ListBoxItem}" BasedOn="{StaticResource {x:Type ListBoxItem}}" >
-						<Setter Property="Margin" Value="5,5,5,0" />
-					</Style>
+					
 				</ListBox.Resources>
 				<ListBox.ItemsPanel>
 					<ItemsPanelTemplate>
@@ -42,19 +43,7 @@
 				<ListBox.ItemTemplate>
 					<DataTemplate>
 						<Grid Width="75" Height="80">
-							<!--<Grid.Style>
-							<Style TargetType="Grid">
-								<Setter Property="Background" Value="White"/>
-								<Style.Triggers>
-									<DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}}" Value="True">
-										<Setter Property="Background" Value="Transparent"/>
-									</DataTrigger>
-									<DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}}" Value="True">
-										<Setter Property="Background" Value="Transparent"/>
-									</DataTrigger>
-								</Style.Triggers>
-							</Style>
-						</Grid.Style>-->
+						
 							<Grid.InputBindings>
 								<MouseBinding MouseAction="LeftDoubleClick" Command="{Binding DataContext.DebuggerDoubleClickedCmd, RelativeSource={RelativeSource AncestorType={x:Type ListBox}}}"/>
 							</Grid.InputBindings>
@@ -81,7 +70,7 @@
 				<StackPanel Orientation="Horizontal">
 					<Button Content="Ignore All" Command="{Binding IgnoreAllCmd}" />
 					<TextBlock Text="for "  VerticalAlignment="Center" />
-					<TextBox VerticalAlignment="Center" Width="20" Text="{Binding IgnoreForMinutes, Mode=TwoWay}" />
+					<TextBox VerticalAlignment="Center" Width="40" Text="{Binding IgnoreForMinutes, Mode=TwoWay}" />
 					<TextBlock  VerticalAlignment="Center" Text=" minutes" />
 
 				</StackPanel>

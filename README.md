@@ -2,7 +2,7 @@
 
 JitMagic is a tool that allows you to have multiple Just-In-Time debuggers at once.  It is able to also pass JIT operations off to other JIT debuggers like Visual Studio's JIT choice form.  There should not be any functionality loss with a debugger by switching to JitMagic (full AeDebug featureset and eventing supported).
 
-![Screenshot](https://raw.githubusercontent.com/mrexodia/JitMagic/master/screenshot.png "Screenshot")
+![Screenshot](screenshot.png "Screenshot")
 
 [![](https://github.com/mrexodia/JitMagic/workflows/continuous/badge.svg)](https://github.com/mrexodia/JitMagic/actions/workflows/continuous.yml?query=branch%3Amaster)
 <!-- MarkdownTOC -->
@@ -21,13 +21,14 @@ JitMagic is a tool that allows you to have multiple Just-In-Time debuggers at on
 
 ## Features
 - Support an unlimited list of user customizable debuggers
-- Debuggers can be architecture specific (x86,x64, or both) in terms of what apps they can debug (and will only be offered when appropriate) 
+- Debuggers can be architecture specific (x86, x64, or both) in terms of what apps they can debug (and will only be offered when appropriate)
 - Pass through JIT event signaling for same-as-native JIT operations (no function loss using JitMagic)
 - Optional delay assistance for debugger applications that may not fully support normal JIT debugging
+- Fluent UI with light/dark theme support
 
 ## Installation
 
-Run JitMagic.exe it will check if it is the registered debugger and if not it will prompt to update the system JIT debugger it itself.  It will backup the existing debugger. 
+Run JitMagic.exe it will check if it is the registered debugger and if not it will prompt to update the system JIT debugger it itself.  It will backup the existing debugger.
 
 ## Configuration
 
@@ -43,12 +44,13 @@ A json entry for a debugger looks like:
 	"Arguments": "--dont-load-files --multiple -p {pid} -e {debugSignalFd} --jdinfo {jitDebugInfoPtr}",
 	"IconOverridePath": "c:\\windows\\System32\\SHELL32.dll,5",
 	"AdditionalDelaySecs": 0
+	"ForcedBackgroundColor": null,
 }
 ```
 Most fields are self explanatory.
 - `IconOverridePath` is the path to a .ico file or a path to an exe/dll to extract the icon from.  For an exe/dll you can optionally specify the index into the file (the `,5` above) for which icon other than the default to select.
-- `AdditionalDelaySecs` seconds before JitMagic would normally exit that it will wait (when it exits it also signals the system to resume the process). This can be useful for debuggers that signal to a parent process and need time to attach but do not support the debug event signaler. 
-
+- `AdditionalDelaySecs` seconds before JitMagic would normally exit that it will wait (when it exits it also signals the system to resume the process). This can be useful for debuggers that signal to a parent process and need time to attach but do not support the debug event signaler.
+- `ForcedBackgroundColor` optional color name to force the icon background to be (useful if you have a black icon and want darkmode)
 
 ## Removal
 Run `JitMigic.exe --unregister` or launch JitMigic without any command line args and select "Remove as JIT".  JitMagic will restore the system debugger to the one that existed when it was installed (or nothing if there wasn't one).

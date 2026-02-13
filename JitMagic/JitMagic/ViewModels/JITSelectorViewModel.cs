@@ -39,27 +39,51 @@ namespace JitMagic.ViewModels {
 			if (!designMode)
 				cli = new(config, aeDebug, args.Skip(1).ToArray());
 
+            ApplyConfig();
+		}
 
-			if (config.Config.OverrideWidth > 100)
+        private void ApplyConfig() {
+            if (config.Config.OverrideWidth > 100)
 				WinWidth = config.Config.OverrideWidth;
 			if (config.Config.OverrideHeight > 100)
 				WinHeight = config.Config.OverrideHeight;
 
 			IgnoreForMinutes = config.Config.DefaultIgnoreMinutes;
-		}
+
+            // Re-apply theme if needed (though usually done in Loaded)
+            // But since Loaded calls it, and we might want to update it immediately:
+            ApplyTheme();
+        }
+
+        private void ApplyTheme() {
+            var theme = config.Config.ForcedTheme?.Trim() ?? "";
+#pragma warning disable WPF0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+			if (theme.Equals("light",StringComparison.CurrentCultureIgnoreCase))
+					Application.Current.ThemeMode = ThemeMode.Light;
+			if (theme.Equals("dark",StringComparison.CurrentCultureIgnoreCase))
+					Application.Current.ThemeMode = ThemeMode.Dark;
+            else if (string.IsNullOrEmpty(theme))
+                    Application.Current.ThemeMode = ThemeMode.System;
+#pragma warning restore WPF0001
+        }
+
+        public event EventHandler<ConfigManager> OpenSettingsRequested;
+        public OurCommand OpenSettingsCmd => GetOurCmdSync(OpenSettings);
+        public void OpenSettings() {
+            OpenSettingsRequested?.Invoke(this, config);
+            // After returning from modal dialog:
+            config.ReadConfig(); // Reload in case it was changed on disk or just to be safe
+            ApplyConfig();
+        }
+
 		public bool TopMost {
 			get; set => Set(ref field, value);
 		}
 		public void Loaded() {
 			if (cli != null && !new[] { APP_ACTION.None, APP_ACTION.AEDebug, APP_ACTION.Screenshot }.Contains(cli.mode))
 				Close();
-			var theme = config.Config.ForcedTheme?.Trim() ?? "";
-#pragma warning disable WPF0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-			if (theme.Equals("light",StringComparison.CurrentCultureIgnoreCase))
-					Application.Current.ThemeMode = ThemeMode.Light;
-			if (theme.Equals("dark",StringComparison.CurrentCultureIgnoreCase))
-					Application.Current.ThemeMode = ThemeMode.Dark;
-#pragma warning restore WPF0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+            ApplyTheme();
 
 
 			var fallback = Icon.ExtractAssociatedIcon(ProcHelper.GetCurrentExecutionPath());
@@ -125,7 +149,7 @@ namespace JitMagic.ViewModels {
 
 		public int WinHeight {
 			get; set => Set(ref field, value);
-		} = 210;
+		} = 220;
 
 		public int WinWidth {
 			get; set => Set(ref field, value);

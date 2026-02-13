@@ -26,10 +26,15 @@ namespace JitMagic.Views {
 			Closing += JITSelectorWindow_Closing;
 			vm.FocusAutoExitNowBtn += (_, _) =>Keyboard.Focus(btnProcExitedClose);
 			vm.HideWin += (_,_) => Hide();
+            vm.OpenSettingsRequested += (s, config) => {
+                var win = new SettingsWindow(config);
+                win.Owner = this;
+                win.ShowDialog();
+            };
 		}
 
 
-		
+
 
 
 		private void JITSelectorWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
