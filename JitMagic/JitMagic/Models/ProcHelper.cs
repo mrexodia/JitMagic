@@ -26,9 +26,15 @@ namespace JitMagic.Models {
 			}
 			return isAdmin;
 		}
+		public static string GetCurrentExecutionPath() {
+			var ret = Assembly.GetExecutingAssembly().Location;
+			if (ret.EndsWith(".dll",StringComparison.CurrentCultureIgnoreCase))
+				return ret.Substring(0, ret.Length - 4) + ".exe";
+			return ret;
+		}
 		public static void LaunchUs(bool asAdmin, String args = null) {
 			Process.Start(new ProcessStartInfo {
-				FileName = Assembly.GetExecutingAssembly().Location,
+				FileName = GetCurrentExecutionPath(),
 				UseShellExecute = true,
 				Verb = asAdmin ? "runas" : "",
 				Arguments = args,

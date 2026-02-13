@@ -3,11 +3,11 @@ using System.Drawing;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Windows;
-#if IS_WPF
+
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-#endif
+
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
@@ -31,6 +31,7 @@ namespace JitMagic.Models {
 		public string FileName { get; set; }
 		public string Arguments { get; set; }
 		public string IconOverridePath { get; set; }
+		public string ForcedBackgroundColor { get;set; }
 		public int AdditionalDelaySecs { get; set; } = 0; // Additional time after it would normally exit where it exits.  Good for  misbehaving / non-signalling debuggers.
 
 		[JsonIgnore]
@@ -71,13 +72,13 @@ namespace JitMagic.Models {
 			} catch { }
 			if (icon == null)
 				icon = fallback;
-#if IS_WPF
+
 			DisplayIcon = ToImageSource(icon);
-#endif
+
 		}
 		[JsonIgnore]
 		public Icon icon;
-#if IS_WPF
+
 		[JsonIgnore]
 		public ImageSource DisplayIcon { get; set; }
 		private static ImageSource ToImageSource(Icon icon) {
@@ -88,6 +89,6 @@ namespace JitMagic.Models {
 
 			return imageSource;
 		}
-#endif
+
 	}
 }

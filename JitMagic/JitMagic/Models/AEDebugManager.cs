@@ -1,19 +1,13 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using PInvoke = Windows.Win32.PInvoke;
 using Microsoft.Win32;
 using Microsoft.Win32.SafeHandles;
 using System.Diagnostics;
 using HANDLE = Windows.Win32.Foundation.HANDLE;
-#if !IS_WPF
-using System.Windows.Forms;
-#endif
 
 namespace JitMagic.Models {
 	public class AEDebugManager {
@@ -26,7 +20,7 @@ namespace JitMagic.Models {
 		/// <returns></returns>
 		public bool UpdateRegistration(APP_ACTION mode) {
 			var spots = new string[] { @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug", @"SOFTWARE\WOW6432Node\Microsoft\Windows NT\CurrentVersion\AeDebug", @"SOFTWARE\WOW6432Node\Microsoft\VisualStudio\Debugger\JIT" };
-			var us = $@"""{Assembly.GetExecutingAssembly().Location}"" {OurAeDebugArgs}";
+			var us = $@"""{ProcHelper.GetCurrentExecutionPath()}"" {OurAeDebugArgs}";
 			var writeMode = mode != APP_ACTION.RegCheck && mode != APP_ACTION.Screenshot;
 			foreach (var spot in spots) {
 				var isVSEntry = spot.EndsWith("JIT");

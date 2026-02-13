@@ -5,9 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-#if !IS_WPF
-using System.Windows.Forms;
-#endif
 
 namespace JitMagic.Models {
 	public enum APP_ACTION { None, RegCheck, Register, Unregister, AddDebugger, RemoveDebugger, AEDebug, Screenshot }
@@ -86,19 +83,7 @@ namespace JitMagic.Models {
 			}
 
 			if (mode == APP_ACTION.None && config.Config.PerformRegisteredCheckOnStart && !aeDebug.UpdateRegistration(APP_ACTION.RegCheck)) {
-				if (MessageBox.Show("We are not currently the default JIT debugger, should we set ourselves as the automatic debugger?", "Update JIT debugger to us?",
-#if IS_WPF
-					MessageBoxButton.YesNo
-#else
-					MessageBoxButtons.YesNo
-#endif
-					) ==
-#if IS_WPF
-					MessageBoxResult.Yes
-#else
-					DialogResult.Yes
-#endif
-					)
+				if (MessageBox.Show("We are not currently the default JIT debugger, should we set ourselves as the automatic debugger?", "Update JIT debugger to us?",MessageBoxButton.YesNo) == MessageBoxResult.Yes )
 					mode = APP_ACTION.Register;
 
 			}

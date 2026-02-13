@@ -134,5 +134,10 @@ namespace JitMagic.Models {
 		/// If our target process dies before we launch a debugger automatically close our UI after this many seconds, 0 means exit right away , null means never automatically exit
 		/// </summary>
 		public int? OnProcDieAutoCloseAfterSecs {get; set; }
+
+		/// <summary>
+		/// light for light dark for dark null for system
+		/// </summary>
+		public string ForcedTheme { get; set; }
 	}
 }
