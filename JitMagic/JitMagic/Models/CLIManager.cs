@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -70,6 +71,13 @@ namespace JitMagic.Models {
 							target.ProcPath = ProcHelper.GetProcessPath(target.Process);
 							if (String.IsNullOrWhiteSpace(target.ProcPath) && target.Status == RequestedTargetProc.TARGET_STATUS.Waiting)
 								target.ProcPath = target.Process.MainModule?.FileName;//try this if the WMI query failed, may still fail if process is protected but worth a shot
+							if (! String.IsNullOrWhiteSpace(config.Config.IgnoreProcessesWithSideBySideFileExtension)){
+								var noJitTestFile = Path.Combine( Path.GetDirectoryName(target.ProcPath), Path.GetFileNameWithoutExtension(target.ProcPath)+config.Config.IgnoreProcessesWithSideBySideFileExtension);
+								if (File.Exists(noJitTestFile)){
+									aeDebug.SilentExit(target.Process, config.Config.DontKillTargetProcessOnNonDebugExit || config.Config.DontKillBlacklistedProcesses);//this will hard exit us
+									return;
+								}
+							}
 							if (config.Config.BlacklistedPaths.Contains(target.ProcPath, StringComparer.CurrentCultureIgnoreCase))
 								aeDebug.SilentExit(target.Process, config.Config.DontKillBlacklistedProcesses || config.Config.DontKillBlacklistedProcesses);//this will hard exit us
 							target.Architecture = ProcHelper.GetProcessArchitecture(target.Process);

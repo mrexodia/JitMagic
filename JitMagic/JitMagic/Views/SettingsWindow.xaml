@@ -48,13 +48,19 @@
                 </GroupBox>
 
                 <!-- Blacklisted Paths -->
-                <GroupBox Header="Blacklisted Paths">
+                <GroupBox Header="Blacklisted">
                     <Grid Height="250">
                         <Grid.RowDefinitions>
+							
+							<RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
-						<ListBox ItemsSource="{Binding BlacklistedPaths}" SelectedItem="{Binding SelectedBlacklistPath}">
+						<StackPanel Orientation="Horizontal">
+							<Label VerticalAlignment="Center" Content="Ignore target if has side by side file with this extension&#x0a;(ie .nojit means if YourExec.nojit exists ignore it): " HorizontalContentAlignment="Right" />
+							<TextBox Text="{Binding IgnoreProcessesWithSideBySideFileExtension}" Width="100"  />
+						</StackPanel>
+						<ListBox ItemsSource="{Binding BlacklistedPaths}" SelectedItem="{Binding SelectedBlacklistPath}" Grid.Row="1">
 							<ListBox.ItemContainerStyle>
 								<Style TargetType="ListBoxItem"  BasedOn="{StaticResource DefaultListBoxItemStyle}">
 									<Setter Property="Padding" Value="0"/>
@@ -62,7 +68,7 @@
 								</Style>
 							</ListBox.ItemContainerStyle>
 						</ListBox>
-						<Button Grid.Row="1" Content="Remove Selected Path" Command="{Binding RemoveBlacklistItemCmd}" HorizontalAlignment="Right" />
+						<Button Grid.Row="2" Content="Remove Selected Path" Command="{Binding RemoveBlacklistItemCmd}" HorizontalAlignment="Right" />
                     </Grid>
                 </GroupBox>
 

@@ -35,9 +35,16 @@ namespace JitMagic.ViewModels {
 			OnProcDieAutoCloseAfterSecs = config.OnProcDieAutoCloseAfterSecs;
 			OverrideWidth = config.OverrideWidth;
 			OverrideHeight = config.OverrideHeight;
+			IgnoreProcessesWithSideBySideFileExtension = config.IgnoreProcessesWithSideBySideFileExtension;
 		}
 
 		public ObservableCollection<string> BlacklistedPaths { get; set; }
+
+
+		public string IgnoreProcessesWithSideBySideFileExtension {
+			get; set => Set(ref field, value);
+		}
+
 
 		public string SelectedBlacklistPath {
 			get => field;
@@ -100,6 +107,7 @@ namespace JitMagic.ViewModels {
 			config.OnProcDieAutoCloseAfterSecs = OnProcDieAutoCloseAfterSecs;
 			config.OverrideWidth = OverrideWidth;
 			config.OverrideHeight = OverrideHeight;
+			config.IgnoreProcessesWithSideBySideFileExtension = IgnoreProcessesWithSideBySideFileExtension;
 
 			_configManager.SaveConfig();
 			CloseRequested?.Invoke(this, EventArgs.Empty);

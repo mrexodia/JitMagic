@@ -139,5 +139,10 @@ namespace JitMagic.Models {
 		/// light for light dark for dark null for system
 		/// </summary>
 		public string ForcedTheme { get; set; }
+
+		/// <summary>
+		/// If specified if a file exists next to the target executable with this extension we will ignore the process and not attempt to launch a debugger, if file.exe is the crashed process and this is .nojit then is file.nojit exists we skip
+		/// </summary>
+		public string IgnoreProcessesWithSideBySideFileExtension { get; set; } = null;
 	}
 }

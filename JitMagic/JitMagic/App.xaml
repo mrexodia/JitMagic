@@ -27,7 +27,9 @@
 					</Trigger>
 				</Style.Triggers>
 			</Style>
-
+			<Style TargetType="TextBox" BasedOn="{StaticResource DefaultTextBoxStyle}">
+				<Setter Property="Margin" Value="3"/>
+			</Style>
 			<Style TargetType="ComboBox" BasedOn="{StaticResource DefaultComboBoxStyle}">
 				<Setter Property="Padding" Value="3 2"/>
 				<Setter Property="Margin" Value="3"/>
