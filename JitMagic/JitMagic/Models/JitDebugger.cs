@@ -31,7 +31,7 @@ namespace JitMagic.Models {
 		public string FileName { get; set; }
 		public string Arguments { get; set; }
 		public string IconOverridePath { get; set; }
-		public string ForcedBackgroundColor { get;set; }
+		public string ForcedBackgroundColor { get; set; }
 		public int AdditionalDelaySecs { get; set; } = 0; // Additional time after it would normally exit where it exits.  Good for  misbehaving / non-signalling debuggers.
 
 		[JsonIgnore]

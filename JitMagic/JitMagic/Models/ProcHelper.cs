@@ -28,7 +28,7 @@ namespace JitMagic.Models {
 		}
 		public static string GetCurrentExecutionPath() {
 			var ret = Assembly.GetExecutingAssembly().Location;
-			if (ret.EndsWith(".dll",StringComparison.CurrentCultureIgnoreCase))
+			if (ret.EndsWith(".dll", StringComparison.CurrentCultureIgnoreCase))
 				return ret.Substring(0, ret.Length - 4) + ".exe";
 			return ret;
 		}

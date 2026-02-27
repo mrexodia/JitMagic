@@ -47,7 +47,7 @@ namespace JitMagic.Models {
 			}
 
 			if (mode == APP_ACTION.None) {
-				
+
 
 				if (action == "-p") {
 					mode = APP_ACTION.AEDebug;
@@ -71,9 +71,9 @@ namespace JitMagic.Models {
 							target.ProcPath = ProcHelper.GetProcessPath(target.Process);
 							if (String.IsNullOrWhiteSpace(target.ProcPath) && target.Status == RequestedTargetProc.TARGET_STATUS.Waiting)
 								target.ProcPath = target.Process.MainModule?.FileName;//try this if the WMI query failed, may still fail if process is protected but worth a shot
-							if (! String.IsNullOrWhiteSpace(config.Config.IgnoreProcessesWithSideBySideFileExtension)){
-								var noJitTestFile = Path.Combine( Path.GetDirectoryName(target.ProcPath), Path.GetFileNameWithoutExtension(target.ProcPath)+config.Config.IgnoreProcessesWithSideBySideFileExtension);
-								if (File.Exists(noJitTestFile)){
+							if (!String.IsNullOrWhiteSpace(config.Config.IgnoreProcessesWithSideBySideFileExtension)) {
+								var noJitTestFile = Path.Combine(Path.GetDirectoryName(target.ProcPath), Path.GetFileNameWithoutExtension(target.ProcPath) + config.Config.IgnoreProcessesWithSideBySideFileExtension);
+								if (File.Exists(noJitTestFile)) {
 									aeDebug.SilentExit(target.Process, config.Config.DontKillTargetProcessOnNonDebugExit || config.Config.DontKillBlacklistedProcesses);//this will hard exit us
 									return;
 								}
@@ -91,7 +91,7 @@ namespace JitMagic.Models {
 			}
 
 			if (mode == APP_ACTION.None && config.Config.PerformRegisteredCheckOnStart && !aeDebug.UpdateRegistration(APP_ACTION.RegCheck)) {
-				if (MessageBox.Show("We are not currently the default JIT debugger, should we set ourselves as the automatic debugger?", "Update JIT debugger to us?",MessageBoxButton.YesNo) == MessageBoxResult.Yes )
+				if (MessageBox.Show("We are not currently the default JIT debugger, should we set ourselves as the automatic debugger?", "Update JIT debugger to us?", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
 					mode = APP_ACTION.Register;
 
 			}

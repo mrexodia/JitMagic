@@ -23,7 +23,7 @@ namespace JitMagic.ViewModels {
 			// Initialize properties from config
 			BlacklistedPaths = new ObservableCollection<string>(config.BlacklistedPaths ?? new List<string>());
 			var forceTheme = config.ForcedTheme.ToLower() ?? "";
-			if (! String.IsNullOrWhiteSpace(forceTheme)){
+			if (!String.IsNullOrWhiteSpace(forceTheme)) {
 				forceTheme = char.ToUpper(forceTheme[0]) + forceTheme.Substring(1);
 				ForcedTheme = forceTheme;
 			}

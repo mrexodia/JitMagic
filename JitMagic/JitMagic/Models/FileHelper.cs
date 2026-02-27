@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Windows.Win32.Storage.FileSystem;
 using System.ComponentModel;
 using System.Linq;

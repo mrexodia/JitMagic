@@ -24,13 +24,13 @@ namespace JitMagic.Views {
 			Loaded += JITSelectorWindow_Loaded;
 			KeyDown += JITSelectorWindow_KeyDown;
 			Closing += JITSelectorWindow_Closing;
-			vm.FocusAutoExitNowBtn += (_, _) =>Keyboard.Focus(btnProcExitedClose);
-			vm.HideWin += (_,_) => Hide();
-            vm.OpenSettingsRequested += (s, config) => {
-                var win = new SettingsWindow(config);
-                win.Owner = this;
-                win.ShowDialog();
-            };
+			vm.FocusAutoExitNowBtn += (_, _) => Keyboard.Focus(btnProcExitedClose);
+			vm.HideWin += (_, _) => Hide();
+			vm.OpenSettingsRequested += (s, config) => {
+				var win = new SettingsWindow(config);
+				win.Owner = this;
+				win.ShowDialog();
+			};
 		}
 
 

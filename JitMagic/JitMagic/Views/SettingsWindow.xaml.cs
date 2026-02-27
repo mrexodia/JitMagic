@@ -15,15 +15,15 @@ using JitMagic.Models;
 using JitMagic.ViewModels;
 
 namespace JitMagic.Views {
-    /// <summary>
-    /// Interaction logic for SettingsWindow.xaml
-    /// </summary>
-    public partial class SettingsWindow : Window {
-        public SettingsWindow(ConfigManager configManager) {
-            InitializeComponent();
-            var vm = new SettingsViewModel(configManager);
-            vm.CloseRequested += (s, e) => Close();
-            DataContext = vm;
-        }
-    }
+	/// <summary>
+	/// Interaction logic for SettingsWindow.xaml
+	/// </summary>
+	public partial class SettingsWindow : Window {
+		public SettingsWindow(ConfigManager configManager) {
+			InitializeComponent();
+			var vm = new SettingsViewModel(configManager);
+			vm.CloseRequested += (s, e) => Close();
+			DataContext = vm;
+		}
+	}
 }
