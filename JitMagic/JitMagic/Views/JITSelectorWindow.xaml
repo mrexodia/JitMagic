@@ -9,7 +9,7 @@
 	<Window.DataContext>
 		<vm:JITSelectorViewModel/>
 	</Window.DataContext>
-	
+
 	<Grid Margin="5" >
 		<Grid Visibility="{Binding ProcessExitedEarlyOverlayVisible, Converter={StaticResource boolVisibilityConverter}, ConverterParameter=1}">
 			<Grid.RowDefinitions>
@@ -33,7 +33,7 @@
 					</Style>
 				</ListBox.ItemContainerStyle>
 				<ListBox.Resources>
-					
+
 				</ListBox.Resources>
 				<ListBox.ItemsPanel>
 					<ItemsPanelTemplate>
@@ -42,8 +42,8 @@
 				</ListBox.ItemsPanel>
 				<ListBox.ItemTemplate>
 					<DataTemplate>
-						<Grid Width="75" Height="80">
-						
+						<Grid Width="75" Height="80" Background="Transparent">
+
 							<Grid.InputBindings>
 								<MouseBinding MouseAction="LeftDoubleClick" Command="{Binding DataContext.DebuggerDoubleClickedCmd, RelativeSource={RelativeSource AncestorType={x:Type ListBox}}}"/>
 							</Grid.InputBindings>
