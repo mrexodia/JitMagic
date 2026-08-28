@@ -7,12 +7,10 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-#if ! IS_WPF
-using System.Windows.Forms;
-#endif
 using JitMagic.Models;
 using JitMagic.MVVMLibLite;
 using Newtonsoft.Json;
@@ -24,17 +22,12 @@ namespace JitMagic.ViewModels {
 	public class JITSelectorViewModel : OurViewModelBase {
 
 		public string WindowTitle {
-			get => _WindowTitle;
-			set => Set(ref _WindowTitle, value);
-		}
-		private string _WindowTitle = "JIT Magic";
-#if IS_WPF
+			get; set => Set(ref field, value);
+		} = "JIT Magic";
+
 		public GridLength LeftCommandColWidth {
-			get => _LeftCommandColWidth;
-			set => Set(ref _LeftCommandColWidth, value);
-		}
-		private GridLength _LeftCommandColWidth = new GridLength(1, GridUnitType.Star);
-#endif
+			get; set => Set(ref field, value);
+		} = new GridLength(1, GridUnitType.Star);
 
 		private ConfigManager config = new();
 		private AEDebugManager aeDebug = new();
@@ -46,42 +39,69 @@ namespace JitMagic.ViewModels {
 			if (!designMode)
 				cli = new(config, aeDebug, args.Skip(1).ToArray());
 
+			ApplyConfig();
+		}
 
+		private void ApplyConfig() {
 			if (config.Config.OverrideWidth > 100)
 				WinWidth = config.Config.OverrideWidth;
 			if (config.Config.OverrideHeight > 100)
 				WinHeight = config.Config.OverrideHeight;
 
 			IgnoreForMinutes = config.Config.DefaultIgnoreMinutes;
+
+			// Re-apply theme if needed (though usually done in Loaded)
+			// But since Loaded calls it, and we might want to update it immediately:
+			ApplyTheme();
 		}
+
+		private void ApplyTheme() {
+			var theme = config.Config.ForcedTheme?.Trim() ?? "";
+#pragma warning disable WPF0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+			if (theme.Equals("light", StringComparison.CurrentCultureIgnoreCase))
+				Application.Current.ThemeMode = ThemeMode.Light;
+			if (theme.Equals("dark", StringComparison.CurrentCultureIgnoreCase))
+				Application.Current.ThemeMode = ThemeMode.Dark;
+			else if (string.IsNullOrEmpty(theme))
+				Application.Current.ThemeMode = ThemeMode.System;
+#pragma warning restore WPF0001
+		}
+
+		public event EventHandler<ConfigManager> OpenSettingsRequested;
+		public OurCommand OpenSettingsCmd => GetOurCmdSync(OpenSettings);
+		public void OpenSettings() {
+			OpenSettingsRequested?.Invoke(this, config);
+			// After returning from modal dialog:
+			config.ReadConfig(); // Reload in case it was changed on disk or just to be safe
+			ApplyConfig();
+		}
+
 		public bool TopMost {
-			get => _TopMost;
-			set => Set(ref _TopMost, value);
+			get; set => Set(ref field, value);
 		}
-		private bool _TopMost;
 		public void Loaded() {
 			if (cli != null && !new[] { APP_ACTION.None, APP_ACTION.AEDebug, APP_ACTION.Screenshot }.Contains(cli.mode))
 				Close();
 
-			var fallback = Icon.ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location);
+			ApplyTheme();
+
+
+			var fallback = Icon.ExtractAssociatedIcon(ProcHelper.GetCurrentExecutionPath());
 			if (cli.mode == APP_ACTION.AEDebug) {
 				TopMost = !Debugger.IsAttached;
 				WindowTitle += $" - PID: {cli.target.Pid}";
 				pid = cli.target.Pid;
 				processPath = cli.target.ProcPath;
 				ProcessInfo = $"{Path.GetFileName(processPath)} ({cli.target.Architecture})";
-#if IS_WPF
-				
-				StandardLaunchOnlyVisibility = Visibility.Collapsed;
-			} else if (cli.mode == APP_ACTION.Screenshot){
-				AEDebugOnlyVisibility = Visibility.Collapsed;
+				StandardLaunchOnlyVisibility = false;
+			} else if (cli.mode == APP_ACTION.Screenshot) {
+				AEDebugOnlyVisibility = false;
 				WindowTitle += $" - PID: 4";
 				ProcessInfo = $"lsass.exe (x86)";
 			} else {
-				LeftCommandColWidth = new GridLength( 0);
-				AEDebugOnlyVisibility = Visibility.Collapsed;
+				LeftCommandColWidth = new GridLength(0);
+				AEDebugOnlyVisibility = false;
 				AttachText = "Launch";
-#endif
 			}
 
 			foreach (var debugger in config.Config.JitDebuggers) {
@@ -91,7 +111,19 @@ namespace JitMagic.ViewModels {
 				debuggers.Add(debugger);
 			}
 			selected_debugger = debuggers.FirstOrDefault();
+			if (cli.mode == APP_ACTION.AEDebug)
+				WatchForExit();
 		}
+
+		private async void WatchForExit() {
+			while (lastKnownStatus == CLIManager.RequestedTargetProc.TARGET_STATUS.Waiting) {
+				CheckProcessStillRunning();
+				await Task.Delay(1000);
+
+			}
+
+		}
+
 		public OurCommand LaunchNormalCmd => GetOurCmdSync(LaunchNormal);
 		public void LaunchNormal() {
 			TopMost = false;
@@ -99,16 +131,12 @@ namespace JitMagic.ViewModels {
 		}
 
 		public int pid {
-			get => _pid;
-			set => Set(ref _pid, value);
+			get; set => Set(ref field, value);
 		}
-		private int _pid;
 
 		public string ProcessInfo {
-			get => _ProcessInfo;
-			set => Set(ref _ProcessInfo, value);
-		}
-		private string _ProcessInfo = "No Process Loaded";
+			get; set => Set(ref field, value);
+		} = "No Process Loaded";
 
 
 		public OurCommand IgnoreAllCmd => GetOurCmdSync(IgnoreAll);
@@ -120,29 +148,30 @@ namespace JitMagic.ViewModels {
 
 
 		public int WinHeight {
-			get => _WinHeight;
-			set => Set(ref _WinHeight, value);
-		}
-		private int _WinHeight = 210;
+			get; set => Set(ref field, value);
+		} = 220;
 
 		public int WinWidth {
-			get => _WinWidth;
-			set => Set(ref _WinWidth, value);
-		}
-		private int _WinWidth = 1000;
+			get; set => Set(ref field, value);
+		} = 1000;
+
+
+		public OurCommand CloseCmd => GetOurCmdSync(Close);
 
 		public void Close() {
-			aeDebug.SignalResume();
-			CloseWin?.Invoke(this, null);
+			HideWin?.Invoke(this, null);
+			if (cli.mode == APP_ACTION.AEDebug)
+				aeDebug.SilentExit(cli.target.Process, DebuggerAttached || config.Config.DontKillTargetProcessOnNonDebugExit);//never kill the target once we handed it off to a debugger, that is not a 'non-debug exit'
+			else
+				Environment.Exit(0);
+
 		}
-		public event EventHandler CloseWin;
+		public event EventHandler FocusAutoExitNowBtn;
 		public event EventHandler HideWin;
 
 		public int IgnoreForMinutes {
-			get => _IgnoreForMinutes;
-			set => Set(ref _IgnoreForMinutes, value);
+			get; set => Set(ref field, value);
 		}
-		private int _IgnoreForMinutes;
 
 		public OurCommand SaveWindowSizeCmd => GetOurCmdSync(SaveWindowSize);
 		public void SaveWindowSize() {
@@ -156,62 +185,77 @@ namespace JitMagic.ViewModels {
 			var debugger = selected_debugger;
 			if (debugger == null)
 				return;
-			if (pid != 0)
+			CheckProcessStillRunning();
+			var shouldAutoClose = cli.target.Status == CLIManager.RequestedTargetProc.TARGET_STATUS.Waiting;
+			if (shouldAutoClose) // if we are in 'launcher' mode then we dont hide ourselves
 				HideWin?.Invoke(this, null);
 			await Task.Delay(10);
 			aeDebug.StartDebugger(debugger, pid, cli.target?.JitDebugStructPtrAddy);
-			if (pid != 0)
+			DebuggerAttached = true;
+			if (shouldAutoClose) // if we are in 'launcher' mode then we dont close
 				DelayClose(debugger.AdditionalDelaySecs);
 		}
+		private bool DebuggerAttached;
 		private async void DelayClose(int extraDelaySecs) {
 			if (extraDelaySecs > 0)
 				await Task.Delay(TimeSpan.FromSeconds(extraDelaySecs));
+			aeDebug.SignalResume();
+			Close();
+		}
+		CLIManager.RequestedTargetProc.TARGET_STATUS lastKnownStatus = CLIManager.RequestedTargetProc.TARGET_STATUS.Waiting;
+		public void CheckProcessStillRunning() {
+			if (DebuggerAttached || cli.mode != APP_ACTION.AEDebug || lastKnownStatus != CLIManager.RequestedTargetProc.TARGET_STATUS.Waiting)
+				return;
+			var status = cli.target.Status;
+			if (status == lastKnownStatus)
+				return;
+			lastKnownStatus = status;
+			RaisePropertyChanged(() => ProcessExitedEarlyOverlayVisible);
+			RaisePropertyChanged(() => ProcessExitedEarlyOverlayText);
+
+			if (status != CLIManager.RequestedTargetProc.TARGET_STATUS.Waiting && config.Config.OnProcDieAutoCloseAfterSecs != null)
+				AutoExit(config.Config.OnProcDieAutoCloseAfterSecs.Value);
+
+			FocusAutoExitNowBtn?.Invoke(this, null);
+		}
+
+		private async void AutoExit(int secs) {
+			while (secs > 0) {
+				OnProcDieAutoCloseAfterSecs = secs--;
+				await Task.Delay(TimeSpan.FromSeconds(1));
+			}
 			Close();
 		}
 
 		public OurCommand BlacklistAppCmd => GetOurCmdSync(BlacklistApp);
 		public void BlacklistApp() {
-#if IS_WPF
+
 			var confirm = MessageBox.Show($"Are you sure you want to blacklist the executable path: {processPath} from future debugging? The only way to undo this is to manually edit the JitMagic.json file", $"Confirm Blacklist {Path.GetFileName(processPath)}", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
 			if (confirm != MessageBoxResult.Yes)
 				return;
-#else
-			var confirm = MessageBox.Show($"Are you sure you want to blacklist the executable path: {processPath} from future debugging? The only way to undo this is to manually edit the JitMagic.json file", $"Confirm Blacklist {Path.GetFileName(processPath)}", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
-			if (confirm != DialogResult.Yes)
-				return;
-#endif
+
 			config.Config.BlacklistedPaths.Add(processPath);
 			config.SaveConfig();
-			Close();
+			aeDebug.SilentExit(cli.target.Process, config.Config.DontKillTargetProcessOnNonDebugExit || config.Config.DontKillBlacklistedProcesses);
 		}
 
 		public string processPath {
-			get => _processPath;
-			set => Set(ref _processPath, value);
+			get; set => Set(ref field, value);
 		}
-		private string _processPath;
 
 
 		public string AttachText {
-			get => _AttachText;
-			set => Set(ref _AttachText, value);
-		}
-		private string _AttachText = "Attach";
-#if IS_WPF
+			get; set => Set(ref field, value);
+		} = "Attach";
 
-		public Visibility AEDebugOnlyVisibility {
-			get => _AEDebugOnlyVisibility;
-			set => Set(ref _AEDebugOnlyVisibility, value);
-		}
-		private Visibility _AEDebugOnlyVisibility = Visibility.Visible;
+		public bool AEDebugOnlyVisibility {
+			get; set => Set(ref field, value);
+		} = true;
 
 
-		public Visibility StandardLaunchOnlyVisibility {
-			get => _StandardLaunchOnlyVisibility;
-			set => Set(ref _StandardLaunchOnlyVisibility, value);
-		}
-		private Visibility _StandardLaunchOnlyVisibility = Visibility.Visible;
-#endif
+		public bool StandardLaunchOnlyVisibility {
+			get; set => Set(ref field, value);
+		} = true;
 
 		public OurCommand RemoveAsJITCmd => GetOurCmdSync(RemoveAsJIT);
 		public void RemoveAsJIT() {
@@ -233,22 +277,35 @@ namespace JitMagic.ViewModels {
 		}
 
 		public JitDebugger selected_debugger {
-			get => _selected_debugger;
-			set => Set(ref _selected_debugger, value);
+			get; set => Set(ref field, value);
 		}
-		private JitDebugger _selected_debugger;
+
+		public bool ProcessExitedEarlyOverlayVisible => cli.mode != APP_ACTION.AEDebug || cli.target.Status == CLIManager.RequestedTargetProc.TARGET_STATUS.Waiting ? false : true;
+
+		public string ProcessExitedEarlyOverlayText {
+			get {
+				if (cli.mode != APP_ACTION.AEDebug)
+					return "";
+				if (cli.target.Status == CLIManager.RequestedTargetProc.TARGET_STATUS.NotFound)
+					return "Target process from -pid not found (or exited fast)";
+
+				return "Target process exited before a debugger was attached (generally something external killed it)";
+
+			}
+		}
+
+		public bool AutoExitWarningTextVisibile => config.Config.OnProcDieAutoCloseAfterSecs == null ? false : true;
+		public int AutoExitAfterSecs => config.Config.OnProcDieAutoCloseAfterSecs ?? 0;
+
+		public int OnProcDieAutoCloseAfterSecs {
+			get; set => Set(ref field, value);
+		}
 
 
 		public ObservableCollection<JitDebugger> debuggers {
-			get => _debuggers;
-			set => Set(ref _debuggers, value);
-		}
-		private ObservableCollection<JitDebugger> _debuggers = new();
+			get; set => Set(ref field, value);
+		} = new();
 
-		public void test() {
-			var ico = Icon.ExtractAssociatedIcon("test");
-
-		}
 
 	}
 }

@@ -24,20 +24,24 @@ namespace JitMagic.Views {
 			Loaded += JITSelectorWindow_Loaded;
 			KeyDown += JITSelectorWindow_KeyDown;
 			Closing += JITSelectorWindow_Closing;
-			vm.CloseWin += (_, _) => { if (!closing) Close(); };
-			vm.HideWin += (_,_) => Hide();
+			vm.FocusAutoExitNowBtn += (_, _) => Keyboard.Focus(btnProcExitedClose);
+			vm.HideWin += (_, _) => Hide();
+			vm.OpenSettingsRequested += (s, config) => {
+				var win = new SettingsWindow(config);
+				win.Owner = this;
+				win.ShowDialog();
+			};
 		}
 
 
-		
+
 
 
 		private void JITSelectorWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
-			closing = true;
 			vm.Close();
+			e.Cancel = true;
 		}
 
-		private bool closing;
 		private void JITSelectorWindow_KeyDown(object sender, KeyEventArgs e) {
 			if (e.Key == Key.Escape)
 				Close();

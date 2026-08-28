@@ -4,92 +4,105 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:JitMagic" xmlns:vm="clr-namespace:JitMagic.ViewModels" Visibility="Collapsed" d:Visibility="Visible"
-		mc:Ignorable="d" Topmost="{Binding TopMost,Mode=OneWay}" Background="#FFECEBEB" WindowStartupLocation="CenterScreen"
+		mc:Ignorable="d" Topmost="{Binding TopMost,Mode=OneWay}" WindowStartupLocation="CenterScreen"
         Title="{Binding WindowTitle}" Height="{Binding WinHeight,Mode=TwoWay}" Width="{Binding WinWidth,Mode=TwoWay}" Icon="pack://application:,,,/JitMagic.ico">
 	<Window.DataContext>
 		<vm:JITSelectorViewModel/>
 	</Window.DataContext>
-	<Window.Resources>
-		<Style BasedOn="{StaticResource {x:Type Button}}" TargetType="{x:Type Button}">
-			<Setter Property="Margin" Value="5" />
-			<Setter Property="Padding" Value="3" />
-		</Style>
-	</Window.Resources>
+
 	<Grid Margin="5" >
-		<Grid.RowDefinitions>
-			<RowDefinition Height="Auto"/>
-			<RowDefinition  />
-			<RowDefinition Height="Auto"/>
-		</Grid.RowDefinitions>
-		<TextBlock Margin="5,5,5,0" Text="{Binding ProcessInfo}" />
-		<ListBox x:Name="listDebuggers" IsSynchronizedWithCurrentItem="True" KeyDown="ListBox_KeyDown" Margin="5" ItemsSource="{Binding debuggers}" SelectedItem="{Binding selected_debugger, Mode=TwoWay}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"  ScrollViewer.VerticalScrollBarVisibility="Auto" Grid.Row="1" >
-			<ListBox.Resources>
-				<Style TargetType="{x:Type ListBoxItem}" BasedOn="{StaticResource {x:Type ListBoxItem}}" >
-					<Setter Property="Margin" Value="5,5,5,0" />
-				</Style>
-			</ListBox.Resources>
-			<ListBox.ItemsPanel>
-				<ItemsPanelTemplate>
-					<WrapPanel MinHeight="80" Orientation="Horizontal" IsItemsHost="True" />
-				</ItemsPanelTemplate>
-			</ListBox.ItemsPanel>
-			<ListBox.ItemTemplate>
-				<DataTemplate>
-					<Grid Width="75" Height="80">
-						<Grid.Style>
-							<Style TargetType="Grid">
-								<Setter Property="Background" Value="White"/>
-								<Style.Triggers>
-									<DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}}" Value="True">
-										<Setter Property="Background" Value="Transparent"/>
-									</DataTrigger>
-									<DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}}" Value="True">
-										<Setter Property="Background" Value="Transparent"/>
-									</DataTrigger>
-								</Style.Triggers>
-							</Style>
-						</Grid.Style>
-						<Grid.InputBindings>
-							<MouseBinding MouseAction="LeftDoubleClick" Command="{Binding DataContext.DebuggerDoubleClickedCmd, RelativeSource={RelativeSource AncestorType={x:Type ListBox}}}"/>
-						</Grid.InputBindings>
-						<Grid.RowDefinitions>
-							<RowDefinition Height="30"/>
-							<RowDefinition />
-						</Grid.RowDefinitions>
-						<Image Source="{Binding DisplayIcon}" MaxWidth="60" />
-						<TextBlock Grid.Row="1" Text="{Binding Name}" Margin="0,5,0,0" TextAlignment="Center" TextWrapping="WrapWithOverflow" FontSize="13"/>
-					</Grid>
-				</DataTemplate>
-			</ListBox.ItemTemplate>
+		<Grid Visibility="{Binding ProcessExitedEarlyOverlayVisible, Converter={StaticResource boolVisibilityConverter}, ConverterParameter=1}">
+			<Grid.RowDefinitions>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition  />
+				<RowDefinition Height="Auto"/>
+			</Grid.RowDefinitions>
+			<Grid Margin="5,5,5,0">
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="*"/>
+					<ColumnDefinition Width="Auto"/>
+				</Grid.ColumnDefinitions>
+				<TextBlock Text="{Binding ProcessInfo}" VerticalAlignment="Center"/>
+				<Button Grid.Column="1" Content="&#x2699;" Command="{Binding OpenSettingsCmd}" Padding="5,0" Margin="5,0,0,0" ToolTip="Settings"/>
+			</Grid>
+			<ListBox x:Name="listDebuggers" IsSynchronizedWithCurrentItem="True" KeyDown="ListBox_KeyDown" Margin="5" ItemsSource="{Binding debuggers}" SelectedItem="{Binding selected_debugger, Mode=TwoWay}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"  ScrollViewer.VerticalScrollBarVisibility="Auto" Grid.Row="1" >
+				<ListBox.ItemContainerStyle>
+					<Style TargetType="ListBoxItem"  BasedOn="{StaticResource DefaultListBoxItemStyle}">
+						<Setter Property="Padding" Value="0"/>
+						<Setter Property="Margin" Value="5,5,5,0" />
+					</Style>
+				</ListBox.ItemContainerStyle>
+				<ListBox.Resources>
 
-		</ListBox>
-		<!--</ScrollViewer>-->
-		<Grid Grid.Row="2">
-			<Grid.ColumnDefinitions>
-				<ColumnDefinition Width="{Binding LeftCommandColWidth}" />
-				<ColumnDefinition Width="Auto" />
-				<ColumnDefinition Width="*" />
-			</Grid.ColumnDefinitions>
-			<StackPanel Orientation="Horizontal">
-				<Button Content="Ignore All" Command="{Binding IgnoreAllCmd}" />
-				<TextBlock Text="for "  VerticalAlignment="Center" />
-				<TextBox VerticalAlignment="Center" Width="20" Text="{Binding IgnoreForMinutes, Mode=TwoWay}" />
-				<TextBlock  VerticalAlignment="Center" Text=" minutes" />
+				</ListBox.Resources>
+				<ListBox.ItemsPanel>
+					<ItemsPanelTemplate>
+						<WrapPanel MinHeight="80" Orientation="Horizontal" IsItemsHost="True" />
+					</ItemsPanelTemplate>
+				</ListBox.ItemsPanel>
+				<ListBox.ItemTemplate>
+					<DataTemplate>
+						<Grid Width="75" Height="80" Background="Transparent">
 
-			</StackPanel>
-			<StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Center">
-				<Button Content="{Binding AttachText}" IsDefault="True" Command="{Binding AttachCmd}" />
-			</StackPanel>
-			<ScrollViewer  Grid.Column="2" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto">
-				<StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-					<Button Content="Set Window Size As Default" Command="{Binding SaveWindowSizeCmd}" Visibility="{Binding StandardLaunchOnlyVisibility}" />
-					<Button Content="Remove This Debugger" Command="{Binding RemoveSelectedDebuggerCmd}" Visibility="{Binding StandardLaunchOnlyVisibility}" />
-					<Button Content="Blacklist This App" Command="{Binding BlacklistAppCmd}" Visibility="{Binding AEDebugOnlyVisibility}" />
-					<Button Content="Remove As JIT" Command="{Binding RemoveAsJITCmd}" Visibility="{Binding StandardLaunchOnlyVisibility}" />
-					<Button Content="Launch W/O JIT For Options" Command="{Binding LaunchNormalCmd}" Visibility="{Binding AEDebugOnlyVisibility}" />
+							<Grid.InputBindings>
+								<MouseBinding MouseAction="LeftDoubleClick" Command="{Binding DataContext.DebuggerDoubleClickedCmd, RelativeSource={RelativeSource AncestorType={x:Type ListBox}}}"/>
+							</Grid.InputBindings>
+							<Grid.RowDefinitions>
+								<RowDefinition Height="30"/>
+								<RowDefinition />
+							</Grid.RowDefinitions>
+							<Border BorderThickness="0" CornerRadius="2" Background="{Binding ForcedBackgroundColor}">
+							<Image Source="{Binding DisplayIcon}" MaxWidth="60" />
+							</Border>
+							<TextBlock Grid.Row="1" Text="{Binding Name}" Margin="0,5,0,0" TextAlignment="Center" TextWrapping="WrapWithOverflow" FontSize="13"/>
+						</Grid>
+					</DataTemplate>
+				</ListBox.ItemTemplate>
+
+			</ListBox>
+			<!--</ScrollViewer>-->
+			<Grid Grid.Row="2">
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="{Binding LeftCommandColWidth}" />
+					<ColumnDefinition Width="Auto" />
+					<ColumnDefinition Width="*" />
+				</Grid.ColumnDefinitions>
+				<StackPanel Orientation="Horizontal">
+					<Button Content="Ignore All" Command="{Binding IgnoreAllCmd}" />
+					<TextBlock Text="for "  VerticalAlignment="Center" />
+					<TextBox VerticalAlignment="Center" Width="40" Text="{Binding IgnoreForMinutes, Mode=TwoWay}" />
+					<TextBlock  VerticalAlignment="Center" Text=" minutes" />
+
 				</StackPanel>
-			</ScrollViewer>
+				<StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Center">
+					<Button Content="{Binding AttachText}" IsDefault="True" Command="{Binding AttachCmd}" />
+				</StackPanel>
+				<ScrollViewer  Grid.Column="2" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto">
+					<StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+						<Button Content="Set Window Size As Default" Command="{Binding SaveWindowSizeCmd}" Visibility="{Binding StandardLaunchOnlyVisibility, Converter={StaticResource boolVisibilityConverter}}" />
+						<Button Content="Remove This Debugger" Command="{Binding RemoveSelectedDebuggerCmd}" Visibility="{Binding StandardLaunchOnlyVisibility, Converter={StaticResource boolVisibilityConverter}}" />
+						<Button Content="Blacklist This App" Command="{Binding BlacklistAppCmd}" Visibility="{Binding AEDebugOnlyVisibility, Converter={StaticResource boolVisibilityConverter}}" />
+						<Button Content="Remove As JIT" Command="{Binding RemoveAsJITCmd}" Visibility="{Binding StandardLaunchOnlyVisibility, Converter={StaticResource boolVisibilityConverter}}" />
+						<Button Content="Launch W/O JIT For Options" Command="{Binding LaunchNormalCmd}" Visibility="{Binding AEDebugOnlyVisibility, Converter={StaticResource boolVisibilityConverter}}" />
+					</StackPanel>
+				</ScrollViewer>
 
+			</Grid>
+		</Grid>
+		<Grid Visibility="{Binding ProcessExitedEarlyOverlayVisible, Converter={StaticResource boolVisibilityConverter}}" d:Visibility="Collapsed" >
+			<Grid.RowDefinitions>
+				<RowDefinition Height="*" />
+				<RowDefinition Height="*" />
+				<RowDefinition Height="Auto" />
+			</Grid.RowDefinitions>
+			<TextBlock Text="{Binding ProcessExitedEarlyOverlayText}" FontSize="16" Foreground="Red" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center" />
+			<TextBlock Visibility="{Binding AutoExitWarningTextVisibile, Converter={StaticResource boolVisibilityConverter}}" Grid.Row="1" HorizontalAlignment="Center" FontSize="14" VerticalAlignment="Center" FontFamily="Consolas">
+				<Run Text="We will auto close in " />
+				<Run Text="{Binding OnProcDieAutoCloseAfterSecs, StringFormat='{}{0,2}'}" />
+				<Run Text=" seconds (change with config option: OnProcDieAutoCloseAfterSecs)" />
+			</TextBlock>
+			<Button Content="Close Now" Command="{Binding CloseCmd}"  Name="btnProcExitedClose" Grid.Row="2" HorizontalAlignment="Stretch" />
 		</Grid>
 	</Grid>
+
 </Window>

@@ -27,4 +27,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: JitMagic
-          path: JitMagic\JitMagic\bin\x64\Release\net472\publish
+          path: JitMagic\JitMagic\bin\x64\Release\publish

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -26,9 +26,15 @@ namespace JitMagic.Models {
 			}
 			return isAdmin;
 		}
+		public static string GetCurrentExecutionPath() {
+			var ret = Assembly.GetExecutingAssembly().Location;
+			if (ret.EndsWith(".dll", StringComparison.CurrentCultureIgnoreCase))
+				return ret.Substring(0, ret.Length - 4) + ".exe";
+			return ret;
+		}
 		public static void LaunchUs(bool asAdmin, String args = null) {
 			Process.Start(new ProcessStartInfo {
-				FileName = Assembly.GetExecutingAssembly().Location,
+				FileName = GetCurrentExecutionPath(),
 				UseShellExecute = true,
 				Verb = asAdmin ? "runas" : "",
 				Arguments = args,
@@ -42,7 +48,7 @@ namespace JitMagic.Models {
 		}
 		public static Architecture GetProcessArchitecture(Process p) {
 			if (p.Id == 0 || p.HasExited)
-				return Architecture.x64;
+				return Architecture.Invalid;
 			if (Environment.Is64BitOperatingSystem) {
 				if (Windows.Win32.PInvoke.IsWow64Process(new SafeProcessHandle(p.Handle, false), out var iswow64)) {
 					return iswow64 ? Architecture.x86 : Architecture.x64;
