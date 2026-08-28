@@ -161,7 +161,7 @@ namespace JitMagic.ViewModels {
 		public void Close() {
 			HideWin?.Invoke(this, null);
 			if (cli.mode == APP_ACTION.AEDebug)
-				aeDebug.SilentExit(cli.target.Process);
+				aeDebug.SilentExit(cli.target.Process, DebuggerAttached || config.Config.DontKillTargetProcessOnNonDebugExit);//never kill the target once we handed it off to a debugger, that is not a 'non-debug exit'
 			else
 				Environment.Exit(0);
 

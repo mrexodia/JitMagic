@@ -51,8 +51,7 @@ namespace JitMagic.Models {
 
 				if (action == "-p") {
 					mode = APP_ACTION.AEDebug;
-					if (config.Config.IgnoringUntil > DateTime.Now)
-						aeDebug.SilentExit(target.Process, config.Config.DontKillTargetProcessOnNonDebugExit);
+					// NOTE: the IgnoringUntil check happens below, once target/target.Process is actually populated.
 					try {
 						target = new();
 						target.Pid = int.Parse(GetNextArg());
@@ -65,6 +64,9 @@ namespace JitMagic.Models {
 						try {
 							target.Process = Process.GetProcessById(target.Pid);
 						} catch (ArgumentException) { } //processes exited (or we got an invalid pid arg)
+
+						if (config.Config.IgnoringUntil > DateTime.Now)
+							aeDebug.SilentExit(target.Process, config.Config.DontKillTargetProcessOnNonDebugExit);//this will hard exit us
 
 
 						if (target.Status == RequestedTargetProc.TARGET_STATUS.Waiting) {
