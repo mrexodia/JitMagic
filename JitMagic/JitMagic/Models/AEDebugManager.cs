@@ -93,8 +93,16 @@ namespace JitMagic.Models {
 			debugSignalEventForChild = _event != IntPtr.Zero ? PInvoke.CreateEvent(sec, true, false, null) : default;
 			var debuggerArgTemplate = jitDebugger.Arguments;
 			debuggerArgTemplate = debuggerArgTemplate.Replace("{pid", "{0").Replace("{debugSignalFd", "{1").Replace("{jitDebugInfoPtr", "{2");
-			if (debuggerArgTemplate.Contains("{0}") == false && debuggerArgTemplate.Contains("%ld")) // support standard AeDebug strings but only if they don't have one of the expected existing subs
-				debuggerArgTemplate = debuggerArgTemplate.Replace("%ld", "{0}").Replace("%ld", "{1}").Replace("%p", "{2}");
+			if (debuggerArgTemplate.Contains("{0}") == false && debuggerArgTemplate.Contains("%ld")) { // support standard AeDebug strings but only if they don't have one of the expected existing subs
+				// One occurrence at a time, the standard order is pid then event handle.  A plain Replace would turn every %ld into the pid.
+				var ReplaceFirst = (string haystack, string needle, string with) => {
+					var at = haystack.IndexOf(needle, StringComparison.Ordinal);
+					return at < 0 ? haystack : haystack.Remove(at, needle.Length).Insert(at, with);
+				};
+				debuggerArgTemplate = ReplaceFirst(debuggerArgTemplate, "%ld", "{0}");
+				debuggerArgTemplate = ReplaceFirst(debuggerArgTemplate, "%ld", "{1}");
+				debuggerArgTemplate = ReplaceFirst(debuggerArgTemplate, "%p", "{2}");
+			}
 
 			var args = string.Format(debuggerArgTemplate, targetPid, debugSignalEventForChild?.DangerousGetHandle().ToInt32() ?? 0, JitDebugStructPtrAddy);
 			var CaptureProcOutput = !String.IsNullOrWhiteSpace(CaptureDebuggerOutputTo);
