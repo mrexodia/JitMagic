@@ -6,34 +6,53 @@
         xmlns:local="clr-namespace:JitMagic"
         xmlns:vm="clr-namespace:JitMagic.ViewModels"
         mc:Ignorable="d"
-        Title="Settings" Height="800" Width="700" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+        Title="Settings" Height="800" Width="700"  WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
     
     <d:Window.DataContext>
         <vm:SettingsViewModel/>
     </d:Window.DataContext>
 	<Window.Resources>
-		<Style TargetType="{x:Type GroupBox}" BasedOn="{StaticResource DefaultGroupBoxStyle}" >
+		<Style TargetType="{x:Type GroupBox}" BasedOn="{StaticResource DefaultGroupBoxStyle}">
+            <Setter Property="Margin" Value="1,2"/>
+            <Setter Property="Padding" Value="6,4,6,5"/>
 			<Setter Property="HeaderTemplate">
 				<Setter.Value>
 					<DataTemplate>
-						<TextBlock Text="{Binding}" 
-                               FontSize="16" 
-                               FontWeight="Bold" 
-                              />
+                        <TextBlock Text="{Binding}" FontSize="14" FontWeight="Bold"/>
 					</DataTemplate>
 				</Setter.Value>
 			</Setter>
 		</Style>
+        <Style TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+            <Setter Property="Margin" Value="2"/>
+			<Setter Property="Padding" Value="2,1"/>
+		</Style>
+        <Style TargetType="TextBox" BasedOn="{StaticResource DefaultTextBoxStyle}">
+            <Setter Property="Margin" Value="2"/>
+			<Setter Property="Padding" Value="3,1"/>
+		</Style>
+        <Style TargetType="ComboBox" BasedOn="{StaticResource DefaultComboBoxStyle}">
+            <Setter Property="Margin" Value="2"/>
+			<Setter Property="Padding" Value="2,1"/>
+		</Style>
+        <Style TargetType="CheckBox" BasedOn="{StaticResource DefaultCheckBoxStyle}">
+			<Setter Property="MinWidth" Value="0"/>
+			<Setter Property="Margin" Value="1,2"/>
+        </Style>
+        <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+            <Setter Property="Margin" Value="1,2"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
 	</Window.Resources>
 	
-	<Grid Margin="5">
+	<Grid Margin="3">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="8">
+            <StackPanel Margin="4">
 
                 <!-- General Theme -->
                 <GroupBox Header="Appearance">
@@ -64,7 +83,7 @@
 							<ListBox.ItemContainerStyle>
 								<Style TargetType="ListBoxItem"  BasedOn="{StaticResource DefaultListBoxItemStyle}">
 									<Setter Property="Padding" Value="0"/>
-									<Setter Property="Margin" Value="5,5,5,0" />
+									<Setter Property="Margin" Value="2,2,2,0" />
 								</Style>
 							</ListBox.ItemContainerStyle>
 						</ListBox>
